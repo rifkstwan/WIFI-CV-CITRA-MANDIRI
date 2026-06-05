@@ -2,9 +2,10 @@ import { useState } from "react"
 import { useNavigate, Link } from "react-router-dom"
 import { useAuth } from "../../contexts/AuthContext"
 
-export function LoginPage() {
-  const { login, roles } = useAuth()
+export function RegisterPage() {
+  const { register } = useAuth()
   const navigate = useNavigate()
+  const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
@@ -15,10 +16,10 @@ export function LoginPage() {
     setError("")
     setLoading(true)
     try {
-      await login(email, password)
-      navigate("/redirect")
+      await register(name, email, password)
+      navigate("/dashboard")
     } catch (err: any) {
-      setError(err.response?.data?.message || "Login gagal")
+      setError(err.response?.data?.message || "Registrasi gagal")
     } finally {
       setLoading(false)
     }
@@ -27,8 +28,8 @@ export function LoginPage() {
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
       <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-8">
-        <h1 className="text-2xl font-bold text-slate-900">Masuk</h1>
-        <p className="mt-1 text-sm text-slate-500">Masuk ke akun WiFi CV Citra Mandiri</p>
+        <h1 className="text-2xl font-bold text-slate-900">Daftar</h1>
+        <p className="mt-1 text-sm text-slate-500">Buat akun pelanggan baru</p>
 
         {error && (
           <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">
@@ -37,6 +38,17 @@ export function LoginPage() {
         )}
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Nama lengkap</label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+              placeholder="Nama lengkap"
+              required
+            />
+          </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
             <input
@@ -55,8 +67,9 @@ export function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
-              placeholder="••••••••"
+              placeholder="Min. 8 karakter"
               required
+              minLength={8}
             />
           </div>
           <button
@@ -64,14 +77,14 @@ export function LoginPage() {
             disabled={loading}
             className="w-full bg-teal-600 hover:bg-teal-700 text-white font-semibold py-3 rounded-xl text-sm transition disabled:opacity-50"
           >
-            {loading ? "Memproses..." : "Masuk"}
+            {loading ? "Memproses..." : "Daftar"}
           </button>
         </form>
 
         <p className="mt-4 text-center text-sm text-slate-500">
-          Belum punya akun?{" "}
-          <Link to="/register" className="text-teal-600 font-medium hover:underline">
-            Daftar sekarang
+          Sudah punya akun?{" "}
+          <Link to="/login" className="text-teal-600 font-medium hover:underline">
+            Masuk di sini
           </Link>
         </p>
       </div>
