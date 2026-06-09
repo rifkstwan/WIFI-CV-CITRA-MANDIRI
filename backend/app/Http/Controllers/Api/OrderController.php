@@ -24,6 +24,33 @@ class OrderController extends Controller
         return response()->json($orders);
     }
 
+    public function myTraffic(Request $request)
+    {
+        $activeOrder = Order::with('paket')
+            ->where('user_id', $request->user()->id)
+            ->where('status', 'aktif')
+            ->first();
+
+        if (!$activeOrder) {
+            return response()->json([
+                'download' => 0,
+                'upload' => 0,
+                'total' => 0
+            ]);
+        }
+        
+        $speed = $activeOrder->paket->kecepatan;
+        // Mock traffic based on package speed
+        $download = $speed * rand(12, 18); 
+        $upload = $speed * rand(3, 7);
+
+        return response()->json([
+            'download' => $download,
+            'upload' => $upload,
+            'total' => $download + $upload
+        ]);
+    }
+
     // Customer: buat order baru
     public function store(Request $request)
     {

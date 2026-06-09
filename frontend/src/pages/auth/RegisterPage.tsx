@@ -1,6 +1,9 @@
 import { useState } from "react"
 import { useNavigate, Link } from "react-router-dom"
 import { useAuth } from "../../contexts/AuthContext"
+import "./LoginPage.css"
+import bgImage from "../../assets/bg-login.jpeg"
+
 
 export function RegisterPage() {
   const { register } = useAuth()
@@ -8,6 +11,7 @@ export function RegisterPage() {
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
 
@@ -26,67 +30,125 @@ export function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-8">
-        <h1 className="text-2xl font-bold text-slate-900">Daftar</h1>
-        <p className="mt-1 text-sm text-slate-500">Buat akun pelanggan baru</p>
+    <div className="login-container">
+      {/* Kolom Kiri: Gambar Kota Malam dengan Jaringan */}
+      <div className="login-image-section">
+        <div className="login-image-wrapper">
+          <div className="login-image-container" style={{ WebkitMask: 'url(#wavy-mask)', mask: 'url(#wavy-mask)' }}>
+            {/* SVG Mask Definition (Mirrored: Top-Right and Bottom-Left) */}
+            <svg width="100%" height="100%" style={{ position: 'absolute', pointerEvents: 'none' }}>
+              <defs>
+                <mask id="wavy-mask">
+                  {/* Base white rounded rectangle (visible part) */}
+                  <rect width="100%" height="100%" fill="white" rx="32" />
 
-        {error && (
-          <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">
-            {error}
-          </div>
-        )}
+                  {/* Top-Left Cutout (black/hidden) placed at the top-left corner */}
+                  <svg x="0" y="0" style={{ overflow: 'visible' }}>
+                    <path d="M 0 0 L 104 0 A 24 24 0 0 0 80 24 L 80 56 A 24 24 0 0 1 56 80 L 24 80 A 24 24 0 0 0 0 104 Z" fill="black" />
+                  </svg>
 
-        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Nama lengkap</label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
-              placeholder="Nama lengkap"
-              required
+                  {/* Bottom-Right Cutout (black/hidden) placed at the bottom-right corner */}
+                  <svg x="100%" y="100%" style={{ overflow: 'visible' }}>
+                    <path transform="scale(-1, -1)" d="M 0 0 L 104 0 A 24 24 0 0 0 80 24 L 80 56 A 24 24 0 0 1 56 80 L 24 80 A 24 24 0 0 0 0 104 Z" fill="black" />
+                  </svg>
+                </mask>
+              </defs>
+            </svg>
+            <img
+              src={bgImage}
+              className="login-image"
+              onError={(e) => {
+                // Fallback jika terjadi error
+                e.currentTarget.src = "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?q=80&w=2034&auto=format&fit=crop";
+              }}
+              alt="Jaringan Kota"
             />
+            <div className="login-image-overlay">
+              <div className="login-image-text">
+                Jelajahi koneksi tanpa batas untuk mendukung kehidupan digital Anda bersama CV. Citra Mandiri.
+              </div>
+            </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
-              placeholder="email@example.com"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
-              placeholder="Min. 8 karakter"
-              required
-              minLength={8}
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-teal-600 hover:bg-teal-700 text-white font-semibold py-3 rounded-xl text-sm transition disabled:opacity-50"
-          >
-            {loading ? "Memproses..." : "Daftar"}
-          </button>
-        </form>
+        </div>
+      </div>
 
-        <p className="mt-4 text-center text-sm text-slate-500">
-          Sudah punya akun?{" "}
-          <Link to="/login" className="text-teal-600 font-medium hover:underline">
-            Masuk di sini
-          </Link>
-        </p>
+      {/* Kolom Kanan: Form Register */}
+      <div className="login-form-section">
+        <div className="login-left-inner">
+          <div className="login-logo-container">
+            <img src="/src/assets/profile.jpg" alt="Logo" className="login-logo-img" />
+            <span className="login-logo-text">CV.Citra Mandiri</span>
+          </div>
+
+          <div className="login-header">
+            <h1>Buat Akun Baru</h1>
+            <p>Silakan daftar untuk mulai menggunakan layanan kami</p>
+          </div>
+
+          {error && <div className="login-error">{error}</div>}
+
+
+
+          <form className="login-form" onSubmit={handleSubmit}>
+            <div className="input-filled-wrapper">
+              <label htmlFor="name">Nama Lengkap</label>
+              <input
+                id="name"
+                type="text"
+                placeholder="Nama Lengkap"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="input-filled-wrapper">
+              <label htmlFor="email">Email</label>
+              <input
+                id="email"
+                type="email"
+                placeholder="email@contoh.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="input-filled-wrapper">
+              <label htmlFor="password">Password</label>
+              <input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={8}
+              />
+              <button
+                type="button"
+                className="password-toggle"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? (
+                  <svg width="20" height="20" fill="none" stroke="#9ca3af" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0zM2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                ) : (
+                  <svg width="20" height="20" fill="none" stroke="#9ca3af" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                )}
+              </button>
+            </div>
+
+
+
+            <button type="submit" className="btn-login" disabled={loading}>
+              {loading ? 'Memproses...' : 'Daftar'}
+            </button>
+          </form>
+
+          <div className="login-footer-text">
+            Sudah punya akun? <Link to="/login">Masuk</Link>
+          </div>
+        </div>
       </div>
     </div>
   )

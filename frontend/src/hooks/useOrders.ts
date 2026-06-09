@@ -26,6 +26,7 @@ export function useMyOrders() {
       const res = await api.get("/orders/my")
       return res.data
     },
+    refetchInterval: 5000,
   })
 }
 

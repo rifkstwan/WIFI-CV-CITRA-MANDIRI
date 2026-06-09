@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { Search, CheckCircle, XCircle, ShieldAlert, Package, Printer, Zap, Check } from "lucide-react"
 import api from "../../services/api"
 import type { Order } from "../../hooks/useOrders"
 
@@ -12,10 +13,11 @@ function formatRupiah(angka: number) {
 }
 
 const statusConfig = {
-  pending:  { label: "Menunggu",  color: "bg-yellow-100 text-yellow-700" },
-  aktif:    { label: "Aktif",     color: "bg-green-100 text-green-700" },
-  ditolak:  { label: "Ditolak",   color: "bg-red-100 text-red-700" },
-  selesai:  { label: "Selesai",   color: "bg-slate-100 text-slate-600" },
+  pending:  { label: "Menunggu",  color: "bg-amber-50 text-amber-600 border-amber-200" },
+  aktif:    { label: "Aktif",     color: "bg-emerald-50 text-emerald-600 border-emerald-200" },
+  suspend:  { label: "Suspend",   color: "bg-red-50 text-red-600 border-red-200" },
+  ditolak:  { label: "Ditolak",   color: "bg-slate-100 text-slate-500 border-slate-300" },
+  selesai:  { label: "Selesai",   color: "bg-indigo-50 text-indigo-600 border-indigo-200" },
 }
 
 type AdminOrder = Order & {
@@ -24,9 +26,10 @@ type AdminOrder = Order & {
 
 export function AdminOrdersPage() {
   const queryClient = useQueryClient()
-  const [filter, setFilter] = useState<string>("all")
+  const [searchTerm, setSearchTerm] = useState("")
+  const [statusFilter, setStatusFilter] = useState<string>("semua")
 
-  const { data: orders, isLoading } = useQuery<AdminOrder[]>({
+  const { data: orders = [], isLoading } = useQuery<AdminOrder[]>({
     queryKey: ["admin-orders"],
     queryFn: async () => {
       const res = await api.get("/orders")
@@ -50,131 +53,248 @@ export function AdminOrdersPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-orders"] })
+      queryClient.invalidateQueries({ queryKey: ["report-summary"] })
     },
   })
 
   const handleAktif = (order: AdminOrder) => {
-    const today = new Date().toISOString().split("T")[0]
-    const selesai = new Date(Date.now() + order.paket.harga * 0)
-    const selesaiDate = new Date()
-    selesaiDate.setDate(selesaiDate.getDate() + 30)
-    updateStatus.mutate({
-      id: order.id,
-      status: "aktif",
-      tanggal_mulai: today,
-      tanggal_selesai: selesaiDate.toISOString().split("T")[0],
-    })
+    if (confirm(`Yakin ingin mengaktifkan pesanan untuk pelanggan ${order.user.name}? Masa aktif paket adalah ${order.paket.durasi} hari.`)) {
+      const today = new Date().toISOString().split("T")[0]
+      const selesaiDate = new Date()
+      // Menggunakan durasi asli paket bukan hardcode 30 hari
+      selesaiDate.setDate(selesaiDate.getDate() + order.paket.durasi)
+      
+      updateStatus.mutate({
+        id: order.id,
+        status: "aktif",
+        tanggal_mulai: today,
+        tanggal_selesai: selesaiDate.toISOString().split("T")[0],
+      })
+    }
   }
 
-  const filtered = filter === "all"
-    ? orders
-    : orders?.filter((o) => o.status === filter)
+  const handleTolak = (id: number) => {
+    if (confirm("Yakin ingin menolak pesanan ini?")) {
+      updateStatus.mutate({ id, status: "ditolak" })
+    }
+  }
+
+  const handleSelesai = (id: number) => {
+    if (confirm("Tandai pesanan ini sebagai selesai?")) {
+      updateStatus.mutate({ id, status: "selesai" })
+    }
+  }
+
+  const handleSuspend = (id: number) => {
+    if (confirm("Suspend (tangguhkan sementara) koneksi untuk pelanggan ini?")) {
+      updateStatus.mutate({ id, status: "suspend" })
+    }
+  }
+
+  // Filter
+  const filteredOrders = orders.filter(o => {
+    const term = searchTerm.toLowerCase()
+    const matchesSearch = 
+      o.user.name.toLowerCase().includes(term) || 
+      o.user.email.toLowerCase().includes(term) ||
+      o.id.toString().includes(term) ||
+      o.paket.nama.toLowerCase().includes(term)
+      
+    const matchesStatus = statusFilter === "semua" || o.status === statusFilter
+    
+    return matchesSearch && matchesStatus
+  })
+
+  if (isLoading) {
+    return <div className="flex h-full items-center justify-center text-slate-400">Memuat data pemesanan...</div>
+  }
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6">
-      <div className="max-w-5xl mx-auto">
-        <h1 className="text-2xl font-bold text-slate-900 mb-6">Kelola Order</h1>
-
-        {/* Filter */}
-        <div className="flex gap-2 mb-6 flex-wrap">
-          {["all", "pending", "aktif", "ditolak", "selesai"].map((s) => (
-            <button
-              key={s}
-              onClick={() => setFilter(s)}
-              className={`px-4 py-2 rounded-xl text-sm font-medium transition ${
-                filter === s
-                  ? "bg-teal-600 text-white"
-                  : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
-              }`}
-            >
-              {s === "all" ? "Semua" : statusConfig[s as keyof typeof statusConfig]?.label}
-            </button>
-          ))}
+    <div className="max-w-7xl mx-auto space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Manajemen Pemesanan</h1>
+          <p className="text-sm text-slate-500 mt-1">Kelola dan pantau seluruh permintaan pemesanan internet pelanggan.</p>
         </div>
+        <div className="flex items-center gap-3 print:hidden">
+          <button 
+            onClick={() => window.print()}
+            className="flex items-center gap-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 px-4 py-2 rounded-xl text-sm font-semibold transition-colors shadow-sm"
+          >
+            <Printer className="w-4 h-4" />
+            Cetak Laporan
+          </button>
+        </div>
+      </div>
 
-        {isLoading && (
-          <div className="space-y-4">
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="bg-white rounded-2xl p-6 shadow-sm animate-pulse">
-                <div className="h-4 bg-slate-200 rounded w-1/3 mb-3" />
-                <div className="h-3 bg-slate-200 rounded w-1/2" />
-              </div>
-            ))}
-          </div>
-        )}
+      {/* Filters */}
+      <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col sm:flex-row gap-4 print:hidden">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <input 
+            type="text" 
+            placeholder="Cari nama, email, nama paket, atau ID Pesanan..." 
+            className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <select 
+            className="px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+          >
+            <option value="semua">Semua Status</option>
+            <option value="pending">Menunggu</option>
+            <option value="aktif">Aktif</option>
+            <option value="suspend">Suspend</option>
+            <option value="selesai">Selesai</option>
+            <option value="ditolak">Ditolak</option>
+          </select>
+        </div>
+      </div>
 
-        {filtered?.length === 0 && !isLoading && (
-          <div className="text-center py-20 text-slate-400">
-            Tidak ada order untuk filter ini
-          </div>
-        )}
+      {/* Table */}
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm text-left">
+            <thead className="text-xs text-slate-500 uppercase bg-slate-50/50 border-b border-slate-100">
+              <tr>
+                <th className="px-6 py-4 font-semibold">Pesanan & Pelanggan</th>
+                <th className="px-6 py-4 font-semibold">Detail Paket</th>
+                <th className="px-6 py-4 font-semibold">Alamat & Catatan</th>
+                <th className="px-6 py-4 font-semibold">Status</th>
+                <th className="px-6 py-4 font-semibold text-right print:hidden">Aksi</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {filteredOrders.map((order) => {
+                const status = statusConfig[order.status as keyof typeof statusConfig] || statusConfig.pending
+                return (
+                  <tr key={order.id} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 flex flex-col items-center justify-center shrink-0">
+                          <span className="text-[10px] font-bold">ID</span>
+                          <span className="text-xs font-bold -mt-1">{order.id}</span>
+                        </div>
+                        <div>
+                          <p className="font-bold text-slate-900">{order.user.name}</p>
+                          <p className="text-xs text-slate-500 mt-0.5">{order.user.email}</p>
+                          <p className="text-[10px] text-slate-400 mt-0.5">Dipesan: {new Date(order.created_at).toLocaleDateString('id-ID')}</p>
+                        </div>
+                      </div>
+                    </td>
+                    
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Package className="w-4 h-4 text-indigo-500" />
+                        <span className="font-bold text-slate-800">{order.paket.nama}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-slate-500">
+                        <Zap className="w-3 h-3 text-amber-500" /> {order.paket.kecepatan} Mbps
+                      </div>
+                      <div className="font-semibold text-indigo-600 mt-1">
+                        {formatRupiah(order.total_harga)}
+                      </div>
+                    </td>
 
-        <div className="space-y-4">
-          {filtered?.map((order) => {
-            const status = statusConfig[order.status]
-            return (
-              <div key={order.id} className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-                <div className="flex items-start justify-between flex-wrap gap-4">
-                  <div>
-                    <div className="flex items-center gap-3">
-                      <h3 className="font-semibold text-slate-900">#{order.id} — {order.paket.nama}</h3>
-                      <span className={`text-xs font-semibold px-3 py-1 rounded-full ${status.color}`}>
-                        {status.label}
-                      </span>
-                    </div>
-                    <p className="text-sm text-slate-500 mt-1">
-                      👤 {order.user.name} ({order.user.email})
-                    </p>
-                    <p className="text-sm text-slate-500 mt-1">
-                      📍 {order.alamat}
-                    </p>
-                    {order.catatan && (
-                      <p className="text-sm text-slate-400 mt-1">💬 {order.catatan}</p>
-                    )}
-                  </div>
-                  <div className="text-right">
-                    <p className="font-bold text-slate-900">{formatRupiah(order.total_harga)}</p>
-                    <p className="text-xs text-slate-400">{order.paket.kecepatan} Mbps</p>
-                  </div>
-                </div>
+                    <td className="px-6 py-4 max-w-[200px]">
+                      <p className="text-slate-700 text-xs line-clamp-2" title={order.alamat}>
+                        {order.alamat}
+                      </p>
+                      {order.catatan ? (
+                        <p className="text-xs text-amber-600 mt-1 line-clamp-1 italic" title={order.catatan}>
+                          Catatan: {order.catatan}
+                        </p>
+                      ) : (
+                        <p className="text-xs text-slate-400 mt-1 italic">- Tanpa catatan -</p>
+                      )}
+                    </td>
 
-                {/* Actions */}
-                {order.status === "pending" && (
-                  <div className="mt-4 pt-4 border-t border-slate-100 flex gap-2">
-                    <button
-                      onClick={() => handleAktif(order)}
-                      disabled={updateStatus.isPending}
-                      className="bg-green-500 hover:bg-green-600 text-white text-sm font-semibold px-4 py-2 rounded-xl transition disabled:opacity-50"
-                    >
-                      ✓ Aktifkan
-                    </button>
-                    <button
-                      onClick={() => updateStatus.mutate({ id: order.id, status: "ditolak" })}
-                      disabled={updateStatus.isPending}
-                      className="bg-red-100 hover:bg-red-200 text-red-700 text-sm font-semibold px-4 py-2 rounded-xl transition disabled:opacity-50"
-                    >
-                      ✕ Tolak
-                    </button>
-                  </div>
-                )}
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col items-start gap-1.5">
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold border ${status.color}`}>
+                          {status.label.toUpperCase()}
+                        </span>
+                        {(order.status === 'aktif' || order.status === 'suspend' || order.status === 'selesai') && order.tanggal_mulai && (
+                          <div className="text-[10px] text-slate-500">
+                            <span className="block font-medium">Mulai: {new Date(order.tanggal_mulai).toLocaleDateString('id-ID')}</span>
+                            <span className="block font-medium">Exp: {order.tanggal_selesai ? new Date(order.tanggal_selesai).toLocaleDateString('id-ID') : '-'}</span>
+                          </div>
+                        )}
+                      </div>
+                    </td>
 
-                {order.status === "aktif" && (
-                  <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between">
-                    <p className="text-xs text-slate-400">
-                      Aktif: {order.tanggal_mulai} — {order.tanggal_selesai}
-                    </p>
-                    <button
-                      onClick={() => updateStatus.mutate({ id: order.id, status: "selesai" })}
-                      disabled={updateStatus.isPending}
-                      className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold px-4 py-2 rounded-xl transition disabled:opacity-50"
-                    >
-                      Tandai Selesai
-                    </button>
-                  </div>
-                )}
-              </div>
-            )
-          })}
+                    <td className="px-6 py-4 text-right print:hidden">
+                      <div className="flex items-center justify-end gap-1.5">
+                        {order.status === "pending" && (
+                          <>
+                            <button 
+                              onClick={() => handleAktif(order)}
+                              disabled={updateStatus.isPending}
+                              className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white rounded-lg text-xs font-bold border border-emerald-200 transition-colors disabled:opacity-50"
+                              title="Terima & Aktifkan Pesanan"
+                            >
+                              <Check className="w-3.5 h-3.5" /> Aktifkan
+                            </button>
+                            <button 
+                              onClick={() => handleTolak(order.id)}
+                              disabled={updateStatus.isPending}
+                              className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50 border border-transparent hover:border-red-100"
+                              title="Tolak Pesanan"
+                            >
+                              <XCircle className="w-4 h-4" />
+                            </button>
+                          </>
+                        )}
+
+                        {(order.status === "aktif" || order.status === "suspend") && (
+                          <>
+                            {order.status === "aktif" ? (
+                              <button 
+                                onClick={() => handleSuspend(order.id)}
+                                disabled={updateStatus.isPending}
+                                className="p-1.5 text-amber-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50 border border-transparent hover:border-red-100"
+                                title="Suspend Pesanan"
+                              >
+                                <ShieldAlert className="w-4 h-4" />
+                              </button>
+                            ) : (
+                              <button 
+                                onClick={() => handleAktif(order)}
+                                disabled={updateStatus.isPending}
+                                className="p-1.5 text-emerald-500 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors disabled:opacity-50 border border-transparent hover:border-emerald-100"
+                                title="Aktifkan Kembali"
+                              >
+                                <CheckCircle className="w-4 h-4" />
+                              </button>
+                            )}
+                            <button 
+                              onClick={() => handleSelesai(order.id)}
+                              disabled={updateStatus.isPending}
+                              className="p-1.5 text-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors disabled:opacity-50 border border-transparent hover:border-indigo-100"
+                              title="Tandai Selesai"
+                            >
+                              <CheckCircle className="w-4 h-4" />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
+              {filteredOrders.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="px-6 py-12 text-center text-slate-400">
+                    Tidak ada pesanan yang sesuai dengan filter.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

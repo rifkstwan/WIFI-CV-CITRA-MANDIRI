@@ -16,7 +16,19 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'avatar',
+        'phone',
+        'address',
+        'email_notif',
+        'wa_notif',
     ];
+
+    protected $appends = ['avatar_url'];
+
+    public function getAvatarUrlAttribute()
+    {
+        return $this->avatar ? asset('storage/' . $this->avatar) : null;
+    }
 
     protected $hidden = [
         'password',
@@ -28,6 +40,8 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password'          => 'hashed',
+            'email_notif'       => 'boolean',
+            'wa_notif'          => 'boolean',
         ];
     }
 }

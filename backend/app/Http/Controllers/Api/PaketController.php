@@ -22,6 +22,13 @@ class PaketController extends Controller
     }
 
     // Admin only
+    public function indexAdmin()
+    {
+        // Admin bisa melihat semua paket termasuk yang tidak aktif
+        $pakets = Paket::orderBy('harga')->get();
+        return response()->json($pakets);
+    }
+
     public function store(Request $request)
     {
         $request->validate([
@@ -30,6 +37,7 @@ class PaketController extends Controller
             'harga'     => 'required|integer|min:0',
             'durasi'    => 'required|integer|min:1',
             'deskripsi' => 'nullable|string',
+            'is_aktif'  => 'boolean',
         ]);
 
         $paket = Paket::create($request->all());
@@ -38,6 +46,15 @@ class PaketController extends Controller
 
     public function update(Request $request, $id)
     {
+        $request->validate([
+            'nama'      => 'sometimes|string|max:255',
+            'kecepatan' => 'sometimes|integer|min:1',
+            'harga'     => 'sometimes|integer|min:0',
+            'durasi'    => 'sometimes|integer|min:1',
+            'deskripsi' => 'nullable|string',
+            'is_aktif'  => 'boolean',
+        ]);
+
         $paket = Paket::findOrFail($id);
         $paket->update($request->all());
         return response()->json($paket);

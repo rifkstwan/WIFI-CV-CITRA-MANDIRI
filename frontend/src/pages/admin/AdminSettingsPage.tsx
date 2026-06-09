@@ -1,0 +1,250 @@
+import { useState, useEffect } from "react"
+import { useSettings, useUpdateSettings, type SettingsMap } from "../../hooks/useSettings"
+import { 
+  Building2, 
+  Mail, 
+  Phone, 
+  MapPin, 
+  Percent, 
+  Save, 
+  Loader2,
+  CheckCircle2,
+  ShieldAlert
+} from "lucide-react"
+
+export function AdminSettingsPage() {
+  const { data: settings, isLoading } = useSettings()
+  const updateSettings = useUpdateSettings()
+  
+  const [formData, setFormData] = useState<SettingsMap>({
+    company_name: '',
+    company_address: '',
+    company_email: '',
+    company_phone: '',
+    tax_percentage: '0',
+    maintenance_mode: 'false'
+  })
+
+  const [showSuccess, setShowSuccess] = useState(false)
+
+  // Populate form when data is loaded
+  useEffect(() => {
+    if (settings) {
+      setFormData({
+        company_name: settings.company_name || '',
+        company_address: settings.company_address || '',
+        company_email: settings.company_email || '',
+        company_phone: settings.company_phone || '',
+        tax_percentage: settings.tax_percentage || '0',
+        maintenance_mode: settings.maintenance_mode || 'false'
+      })
+    }
+  }, [settings])
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target
+    setFormData(prev => ({ ...prev, [name]: value }))
+  }
+
+  const handleToggle = (name: string) => {
+    setFormData(prev => ({ 
+      ...prev, 
+      [name]: prev[name] === 'true' ? 'false' : 'true' 
+    }))
+  }
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    updateSettings.mutate(formData, {
+      onSuccess: () => {
+        setShowSuccess(true)
+        setTimeout(() => setShowSuccess(false), 3000)
+      }
+    })
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[500px] text-slate-400">
+        <Loader2 className="w-8 h-8 animate-spin mb-4 text-slate-400" />
+        <p className="text-sm font-medium">Memuat pengaturan...</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="max-w-7xl mx-auto space-y-6 pb-10">
+      
+      {/* Header Minimalist */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Pengaturan Sistem</h1>
+          <p className="text-sm text-slate-500 mt-1">Kelola konfigurasi bisnis dan sistem layanan WiFi Anda.</p>
+        </div>
+        <button 
+          onClick={handleSubmit}
+          disabled={updateSettings.isPending}
+          className="bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {updateSettings.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} 
+          Simpan Perubahan
+        </button>
+      </div>
+
+      {showSuccess && (
+        <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl p-4 flex items-center gap-3 animate-in fade-in slide-in-from-top-4">
+           <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+           <p className="text-sm font-medium">Pengaturan berhasil disimpan ke database!</p>
+        </div>
+      )}
+
+      <form id="settings-form" onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+         
+         {/* Profil Perusahaan */}
+         <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col space-y-6">
+            <div className="border-b border-slate-100 pb-4">
+               <h2 className="text-lg font-bold text-slate-900">Profil Perusahaan</h2>
+               <p className="text-sm text-slate-500 mt-1">Informasi ini akan ditampilkan pada invoice dan halaman pelanggan.</p>
+            </div>
+            
+            <div className="space-y-4">
+               <div className="space-y-2">
+                  <label className="text-sm font-semibold text-slate-700">Nama Bisnis</label>
+                  <div className="relative">
+                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Building2 className="h-4 w-4 text-slate-400" />
+                     </div>
+                     <input 
+                        type="text" 
+                        name="company_name"
+                        value={formData.company_name}
+                        onChange={handleChange}
+                        className="pl-10 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:ring-1 focus:ring-slate-500 transition-colors"
+                        placeholder="Misal: Citra Mandiri WiFi"
+                     />
+                  </div>
+               </div>
+
+               <div className="space-y-2">
+                  <label className="text-sm font-semibold text-slate-700">Email Kontak</label>
+                  <div className="relative">
+                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Mail className="h-4 w-4 text-slate-400" />
+                     </div>
+                     <input 
+                        type="email" 
+                        name="company_email"
+                        value={formData.company_email}
+                        onChange={handleChange}
+                        className="pl-10 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:ring-1 focus:ring-slate-500 transition-colors"
+                        placeholder="support@domain.com"
+                     />
+                  </div>
+               </div>
+
+               <div className="space-y-2">
+                  <label className="text-sm font-semibold text-slate-700">Nomor Telepon / WhatsApp</label>
+                  <div className="relative">
+                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Phone className="h-4 w-4 text-slate-400" />
+                     </div>
+                     <input 
+                        type="text" 
+                        name="company_phone"
+                        value={formData.company_phone}
+                        onChange={handleChange}
+                        className="pl-10 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:ring-1 focus:ring-slate-500 transition-colors"
+                        placeholder="081234567890"
+                     />
+                  </div>
+               </div>
+
+               <div className="space-y-2">
+                  <label className="text-sm font-semibold text-slate-700">Alamat Lengkap</label>
+                  <div className="relative">
+                     <div className="absolute top-2.5 left-3 pointer-events-none">
+                        <MapPin className="h-4 w-4 text-slate-400" />
+                     </div>
+                     <textarea 
+                        name="company_address"
+                        value={formData.company_address}
+                        onChange={handleChange}
+                        rows={3}
+                        className="pl-10 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:ring-1 focus:ring-slate-500 transition-colors"
+                        placeholder="Jl. Merdeka No. 123, Kota"
+                     />
+                  </div>
+               </div>
+            </div>
+         </div>
+
+         {/* Keuangan & Sistem Operasional */}
+         <div className="space-y-6">
+            
+            {/* Keuangan */}
+            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col space-y-6">
+               <div className="border-b border-slate-100 pb-4">
+                  <h2 className="text-lg font-bold text-slate-900">Keuangan & Pajak</h2>
+                  <p className="text-sm text-slate-500 mt-1">Atur persentase pajak yang dibebankan ke tagihan.</p>
+               </div>
+               
+               <div className="space-y-4">
+                  <div className="space-y-2">
+                     <label className="text-sm font-semibold text-slate-700">Pajak PPN (%)</label>
+                     <div className="relative sm:w-1/2">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                           <Percent className="h-4 w-4 text-slate-400" />
+                        </div>
+                        <input 
+                           type="number" 
+                           name="tax_percentage"
+                           value={formData.tax_percentage}
+                           onChange={handleChange}
+                           min="0"
+                           max="100"
+                           className="pl-10 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:ring-1 focus:ring-slate-500 transition-colors"
+                           placeholder="11"
+                        />
+                     </div>
+                     <p className="text-xs text-slate-500">Persentase ini akan otomatis ditambahkan ke tagihan bulanan pelanggan.</p>
+                  </div>
+               </div>
+            </div>
+
+            {/* Sistem Operasional */}
+            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col space-y-6">
+               <div className="border-b border-slate-100 pb-4">
+                  <h2 className="text-lg font-bold text-slate-900">Sistem Operasional</h2>
+                  <p className="text-sm text-slate-500 mt-1">Kontrol akses portal secara menyeluruh.</p>
+               </div>
+               
+               <div className="flex items-start justify-between gap-4 p-4 rounded-lg border border-slate-100 bg-slate-50">
+                  <div className="flex gap-3">
+                     <ShieldAlert className="w-5 h-5 text-slate-400 shrink-0 mt-0.5" />
+                     <div>
+                        <h3 className="text-sm font-bold text-slate-800">Mode Pemeliharaan (Maintenance)</h3>
+                        <p className="text-xs text-slate-500 mt-1">Jika aktif, pelanggan tidak akan bisa mengakses portal atau melakukan pemesanan baru karena sistem sedang dalam perbaikan.</p>
+                     </div>
+                  </div>
+                  <button
+                     type="button"
+                     onClick={() => handleToggle('maintenance_mode')}
+                     className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 ${formData.maintenance_mode === 'true' ? 'bg-red-500' : 'bg-slate-300'}`}
+                     role="switch"
+                     aria-checked={formData.maintenance_mode === 'true'}
+                  >
+                     <span className="sr-only">Use setting</span>
+                     <span
+                        aria-hidden="true"
+                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${formData.maintenance_mode === 'true' ? 'translate-x-5' : 'translate-x-0'}`}
+                     />
+                  </button>
+               </div>
+            </div>
+
+         </div>
+      </form>
+
+    </div>
+  )
+}
