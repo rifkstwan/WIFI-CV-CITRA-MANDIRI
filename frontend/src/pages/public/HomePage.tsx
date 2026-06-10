@@ -486,56 +486,57 @@ export function HomePage() {
             ) : (
               packages.map((pkg, idx) => {
                 const getIcon = (i: number) => {
-                   const icons = [
-                     <Wifi strokeWidth={2.5} className="w-5 h-5" />,
-                     <Rocket strokeWidth={2.5} className="w-5 h-5" />,
-                     <Zap strokeWidth={2.5} className="w-5 h-5" />,
-                     <Crown strokeWidth={2.5} className="w-5 h-5" />,
-                     <Shield strokeWidth={2.5} className="w-5 h-5" />
-                   ];
-                   return icons[i % icons.length];
+                  const icons = [
+                    <Wifi strokeWidth={2.5} className="w-5 h-5" />,
+                    <Rocket strokeWidth={2.5} className="w-5 h-5" />,
+                    <Zap strokeWidth={2.5} className="w-5 h-5" />,
+                    <Crown strokeWidth={2.5} className="w-5 h-5" />,
+                    <Shield strokeWidth={2.5} className="w-5 h-5" />
+                  ];
+                  return icons[i % icons.length];
                 };
-                
+
                 const getColors = (i: number) => {
-                   const colors = [
-                     'text-blue-600 bg-blue-50 border border-blue-100',
-                     'text-emerald-600 bg-emerald-50 border border-emerald-100',
-                     'text-orange-600 bg-orange-50 border border-orange-100',
-                     'text-purple-600 bg-purple-50 border border-purple-100',
-                     'text-rose-600 bg-rose-50 border border-rose-100'
-                   ];
-                   return colors[i % colors.length];
+                  const colors = [
+                    'text-blue-600 bg-blue-50 border border-blue-100',
+                    'text-emerald-600 bg-emerald-50 border border-emerald-100',
+                    'text-orange-600 bg-orange-50 border border-orange-100',
+                    'text-purple-600 bg-purple-50 border border-purple-100',
+                    'text-rose-600 bg-rose-50 border border-rose-100'
+                  ];
+                  return colors[i % colors.length];
                 };
 
                 return (
-                <div key={pkg.id} className="price-card">
-                  <div className={`price-card-icon ${getColors(idx)}`} style={{ marginBottom: '36px' }}>
-                    {getIcon(idx)}
-                  </div>
-                  <h3 className="price-card-name">{pkg.nama}</h3>
-                  <p className="price-card-desc">{pkg.deskripsi}</p>
-                  <div className="price-card-price">
-                    <span className="price-amount">{pkg.harga.toLocaleString('id-ID')}</span>
-                    <span className="price-unit">/ bulan</span>
-                  </div>
-                  <Link to="/register" className="price-card-btn price-card-btn--outline">Pilih Paket</Link>
-                  <div className="price-features">
-                    <p className="price-features-label">Keunggulan:</p>
-                    <div className="price-feature-row">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
-                      <span>Kecepatan stabil {pkg.kecepatan} Mbps</span>
+                  <div key={pkg.id} className="price-card">
+                    <div className={`price-card-icon ${getColors(idx)}`} style={{ marginBottom: '36px' }}>
+                      {getIcon(idx)}
                     </div>
-                    <div className="price-feature-row">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
-                      <span>Unlimited Tanpa FUP</span>
+                    <h3 className="price-card-name">{pkg.nama}</h3>
+                    <p className="price-card-desc">{pkg.deskripsi}</p>
+                    <div className="price-card-price">
+                      <span className="price-amount">{pkg.harga.toLocaleString('id-ID')}</span>
+                      <span className="price-unit">/ bulan</span>
                     </div>
-                    <div className="price-feature-row">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
-                      <span>Support Teknisi</span>
+                    <Link to="/register" className="price-card-btn price-card-btn--outline">Pilih Paket</Link>
+                    <div className="price-features">
+                      <p className="price-features-label">Keunggulan:</p>
+                      <div className="price-feature-row">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                        <span>Kecepatan stabil {pkg.kecepatan} Mbps</span>
+                      </div>
+                      <div className="price-feature-row">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                        <span>Unlimited Tanpa FUP</span>
+                      </div>
+                      <div className="price-feature-row">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                        <span>Support Teknisi</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              )})
+                )
+              })
             )}
 
           </div>
@@ -683,7 +684,7 @@ export function HomePage() {
 
             {/* ── Info Kontak ── */}
             <p className="coverage-contact-label">Hubungi kami untuk informasi lebih lanjut</p>
-            <p className="coverage-phone">0812-3456-7890</p>
+            <p className="coverage-phone">0812-2577-686</p>
             {/* ── Area terjangkau ── */}
             <div className="coverage-areas">
               {["Brati", "Gabus", "Geyer", "Godong", "Grobogan", "Gubug", "Karangrayung", "Kedungjati", "Klambu", "Kradenan", "Ngaringan", "Penawangan", "Pulokulon", "Purwodadi", "Tanggungharjo", "Tawangharjo", "Tegowanu", "Toroh", "Wirosari"].map(area => (
