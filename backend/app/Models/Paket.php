@@ -13,6 +13,7 @@ class Paket extends Model
         'nama',
         'deskripsi',
         'kecepatan',
+        'fup',
         'harga',
         'durasi',
         'is_aktif',
@@ -21,4 +22,14 @@ class Paket extends Model
     protected $casts = [
         'is_aktif' => 'boolean',
     ];
+
+    public function upgradeRequestsAsOld()
+    {
+        return $this->hasMany(UpgradeRequest::class, 'old_paket_id');
+    }
+
+    public function upgradeRequestsAsNew()
+    {
+        return $this->hasMany(UpgradeRequest::class, 'new_paket_id');
+    }
 }

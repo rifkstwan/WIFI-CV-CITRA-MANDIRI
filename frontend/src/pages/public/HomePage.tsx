@@ -12,7 +12,25 @@ type Package = {
   kecepatan: number
   harga: number
   deskripsi: string
+  is_popular?: boolean
 }
+
+const COVERED_AREAS = [
+  "brati", "gabus", "geyer", "godong", "grobogan", "gubug", 
+  "karangrayung", "kedungjati", "klambu", "kradenan", "ngaringan", 
+  "penawangan", "pulokulon", "purwodadi", "tanggungharjo", 
+  "tawangharjo", "tegowanu", "toroh", "wirosari"
+];
+
+// Daftar desa terpencil/pelosok di Grobogan yang belum terjangkau
+const UNCOVERED_VILLAGES = [
+  "sobo", "ledokdawan", "suru",          // Geyer
+  "suwatu", "baturagung", "nglinduk",    // Gabus
+  "randurejo", "mlowokarangtaun",        // Pulokulon
+  "padas", "prigi",                      // Kedungjati
+  "karangasem", "tegalrejo",             // Wirosari
+  "winong"                               // Penawangan
+];
 
 const dummyTestimonials = [
   {
@@ -85,6 +103,8 @@ const faqs = [
 export function HomePage() {
   const [scrolled, setScrolled] = useState(false)
   const [activeFaq, setActiveFaq] = useState<number | null>(0)
+  const [searchArea, setSearchArea] = useState("")
+  const [checkResult, setCheckResult] = useState<'idle' | 'covered' | 'partial' | 'not_covered' | 'empty'>('idle')
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20)
@@ -101,6 +121,35 @@ export function HomePage() {
   })
 
   const { data: publicTestimonials = [], isLoading: isLoadingTestimonials } = usePublicTestimonials()
+
+  const handleCheckArea = () => {
+    if (!searchArea.trim()) {
+      setCheckResult('empty');
+      return;
+    }
+    
+    const query = searchArea.toLowerCase();
+    
+    // Cek apakah itu masuk daftar desa jauh/pelosok
+    const isFarVillage = UNCOVERED_VILLAGES.some(village => query.includes(village));
+    if (isFarVillage) {
+      setCheckResult('not_covered');
+      return;
+    }
+
+    const matchedKecamatan = COVERED_AREAS.find(area => query.includes(area));
+    const isDesaAtauDusun = query.includes('desa') || query.includes('dusun') || query.includes('kampung') || query.includes('pelosok');
+    
+    if (matchedKecamatan) {
+      if (isDesaAtauDusun) {
+        setCheckResult('partial');
+      } else {
+        setCheckResult('covered');
+      }
+    } else {
+      setCheckResult('not_covered');
+    }
+  };
 
   // Gabungkan dummy dengan testimoni asli dari database
   const allTestimonials = [
@@ -666,12 +715,100 @@ export function HomePage() {
                 type="text"
                 className="coverage-input"
                 placeholder="Masukkan alamat atau kode pos..."
+                value={searchArea}
+                onChange={(e) => setSearchArea(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleCheckArea()}
               />
             </div>
-            <button className="btn btn-primary coverage-btn">
+            <button onClick={handleCheckArea} className="btn btn-primary coverage-btn">
               Cek Ketersediaan
             </button>
           </div>
+
+          {/* ── Kotak Hasil Pengecekan ── */}
+          {checkResult !== 'idle' && (
+            <div className="w-full max-w-[560px] mx-auto text-left animate-in fade-in slide-in-from-bottom-4 duration-500" style={{ margin: '32px auto 0' }}>
+              <div className={`relative rounded-[20px] shadow-sm border ${
+                checkResult === 'covered' ? 'bg-emerald-50 border-emerald-200' :
+                checkResult === 'partial' ? 'bg-blue-50 border-blue-200' :
+                checkResult === 'not_covered' ? 'bg-orange-50 border-orange-200' :
+                'bg-slate-50 border-slate-200'
+              }`} style={{ padding: '24px' }}>
+                
+                {/* Tombol Close (X) Universal */}
+                <button 
+                  onClick={() => {
+                    setCheckResult('idle');
+                    setSearchArea('');
+                  }}
+                  style={{ position: 'absolute', top: '16px', right: '16px', background: 'transparent', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: '4px' }}
+                  className="hover:text-slate-700 transition-colors"
+                  aria-label="Tutup pesan"
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
+                {checkResult === 'covered' && (
+                  <div className="flex flex-col md:flex-row items-center md:items-start text-center md:text-left" style={{ gap: '20px' }}>
+                    <div className="shrink-0 w-14 h-14 bg-emerald-100 rounded-full flex items-center justify-center">
+                      <svg className="w-7 h-7 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="text-[18px] font-bold text-emerald-900" style={{ marginBottom: '8px' }}>Area Anda Terjangkau!</h4>
+                      <p className="text-[14.5px] leading-relaxed text-emerald-700" style={{ marginBottom: '20px' }}>Selamat! Jaringan utama fiber optik kami telah menjangkau lokasi Anda. Anda bisa langsung mendaftar sekarang.</p>
+                      <Link to="/register" className="inline-flex items-center justify-center bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[14.5px] rounded-xl transition-all w-full md:w-auto" style={{ padding: '12px 24px' }}>
+                        Daftar Pemasangan
+                      </Link>
+                    </div>
+                  </div>
+                )}
+                
+                {checkResult === 'partial' && (
+                  <div className="flex flex-col md:flex-row items-center md:items-start text-center md:text-left" style={{ gap: '20px' }}>
+                    <div className="shrink-0 w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center">
+                      <svg className="w-7 h-7 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="text-[18px] font-bold text-blue-900" style={{ marginBottom: '8px' }}>Perlu Survey Lapangan</h4>
+                      <p className="text-[14.5px] leading-relaxed text-blue-800" style={{ marginBottom: '20px' }}>Kecamatan Anda terjangkau, namun karena spesifik di area desa/pelosok, kami perlu mengecek batas maksimal tarikan tiang ke rumah Anda.</p>
+                      <a href="https://wa.me/628122577686?text=Halo%20Admin,%20saya%20ingin%20meminta%20survey%20lokasi%20pemasangan%20WiFi%20di%20desa%20saya." target="_blank" rel="noreferrer" className="inline-flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white font-bold text-[14.5px] rounded-xl transition-all w-full md:w-auto" style={{ padding: '12px 24px' }}>
+                        Hubungi via WhatsApp
+                      </a>
+                    </div>
+                  </div>
+                )}
+                
+                {checkResult === 'not_covered' && (
+                  <div className="flex flex-col md:flex-row items-center md:items-start text-center md:text-left" style={{ gap: '20px' }}>
+                    <div className="shrink-0 w-14 h-14 bg-orange-100 rounded-full flex items-center justify-center">
+                      <svg className="w-7 h-7 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="text-[18px] font-bold text-orange-900" style={{ marginBottom: '8px' }}>Belum Terjangkau</h4>
+                      <p className="text-[14.5px] leading-relaxed text-orange-800" style={{ marginBottom: '20px' }}>Mohon maaf, jaringan fiber optik kami belum masuk ke area Anda. Kami mencatat wilayah ini untuk prioritas perluasan (ODP) selanjutnya.</p>
+                      <button onClick={() => setCheckResult('idle')} className="inline-flex items-center justify-center bg-orange-200 hover:bg-orange-300 text-orange-900 font-bold text-[14.5px] rounded-xl transition-all w-full md:w-auto" style={{ padding: '12px 24px', border: 'none' }}>
+                        Tutup Pesan
+                      </button>
+                    </div>
+                  </div>
+                )}
+                
+                {checkResult === 'empty' && (
+                  <div className="flex flex-col md:flex-row items-center md:items-start text-center md:text-left" style={{ gap: '20px' }}>
+                    <div className="shrink-0 w-14 h-14 bg-slate-200 rounded-full flex items-center justify-center">
+                      <svg className="w-7 h-7 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="text-[18px] font-bold text-slate-800" style={{ marginBottom: '8px' }}>Area Kosong</h4>
+                      <p className="text-[14.5px] leading-relaxed text-slate-600">Ketikkan nama kecamatan atau desa tempat tinggal Anda pada kolom pencarian di atas untuk memeriksa jaringan kami.</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="coverage-inner">

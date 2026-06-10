@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Ticket;
+use App\Models\Notification;
 use Illuminate\Http\Request;
 use App\Services\WhatsAppService;
 
@@ -40,6 +41,12 @@ class TicketController extends Controller
             'foto' => $fotoPath
         ]);
 
+        Notification::notifyAdmins(
+            'Tiket Gangguan Baru',
+            'Pelanggan ' . $request->user()->name . ' membuat laporan gangguan: ' . $ticket->judul,
+            'ticket'
+        );
+
         return response()->json($ticket, 201);
     }
 
@@ -69,6 +76,13 @@ class TicketController extends Controller
         $ticket->save();
 
         $ticket->load('user');
+
+        Notification::create([
+            'user_id' => $ticket->user_id,
+            'title' => 'Update Tiket Gangguan',
+            'message' => 'Status tiket "' . $ticket->judul . '" Anda telah diubah menjadi ' . strtoupper($ticket->status),
+            'type' => 'ticket_update',
+        ]);
 
         try {
             WhatsAppService::sendTicketUpdateNotification($ticket->user, $ticket);

@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\OwnerUserController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\PaketController;
+use App\Http\Controllers\Api\UpgradeController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\CustomerController;
 use App\Http\Controllers\Api\BillingController;
@@ -51,6 +52,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/orders/{id}',       [OrderController::class, 'show']);
     Route::post('/orders',           [OrderController::class, 'store']);
     Route::post('/orders/{id}/pay',  [PaymentController::class, 'getSnapToken']);
+    Route::post('/orders/{id}/upgrade', [UpgradeController::class, 'store']);
 
     // Tagihan Bulanan (Customer)
     Route::get('/my-billings',       [BillingController::class, 'myBillings']);
@@ -72,8 +74,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/testimonials/my', [App\Http\Controllers\Api\TestimonialController::class, 'myTestimonial']);
     Route::post('/testimonials', [App\Http\Controllers\Api\TestimonialController::class, 'store']);
 
-    // Admin + Owner
-    Route::middleware('role:admin|owner')->group(function () {
+    // Admin
+    Route::middleware('role:admin')->group(function () {
         // Tiket Gangguan
         Route::get('/admin/tickets', [TicketController::class, 'indexAdmin']);
         Route::patch('/admin/tickets/{id}/status', [TicketController::class, 'updateStatus']);
@@ -97,6 +99,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::get('/orders',               [OrderController::class, 'index']);
         Route::patch('/orders/{id}/status', [OrderController::class, 'updateStatus']);
+        Route::patch('/orders/{id}/specs',  [OrderController::class, 'updateSpecs']);
+
+        // Upgrades
+        Route::get('/admin/upgrades', [UpgradeController::class, 'indexAdmin']);
+        Route::patch('/admin/upgrades/{id}/status', [UpgradeController::class, 'updateStatus']);
 
         Route::get('/reports/summary', [ReportController::class, 'summary']);
 
@@ -116,10 +123,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/settings', [App\Http\Controllers\Api\SettingController::class, 'update']);
     });
 
-    // Owner only - monitoring only
-    Route::middleware('role:owner')->group(function () {
-        Route::get('/owner/users', [OwnerUserController::class, 'index']);
-        Route::get('/owner/reports/summary', [ReportController::class, 'summary']);
+        // Users overview (moved from owner)
+        Route::get('/admin/users', [OwnerUserController::class, 'index']);
     });
 
     // Technician

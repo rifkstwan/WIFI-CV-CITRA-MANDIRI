@@ -1,17 +1,29 @@
+import { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
 import { useMyOrders } from "../../hooks/useOrders"
 import { useSchedules } from "../../hooks/useSchedules"
-import { Globe, MapPin, CheckCircle2, AlertCircle, Cpu, Zap, Wifi, Activity, ArrowRight, ShieldCheck, Server } from "lucide-react"
+import { Globe, MapPin, CheckCircle2, AlertCircle, Cpu, Zap, Wifi, Activity, ArrowRight, ShieldCheck, Server, X } from "lucide-react"
 import { OrderPage } from "../customer/OrderPage"
+import api from "../../services/api"
 
 export function ServicesPage() {
-  const { data: orders } = useMyOrders()
+  const { data: orders, mutate } = useMyOrders()
   const { data: schedules } = useSchedules()
+  
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+  const [pakets, setPakets] = useState<any[]>([])
+  const [selectedPaketId, setSelectedPaketId] = useState<number | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   
   // Find the active order
   const activeOrder = orders?.find((o) => o.status === "aktif")
   const pendingOrder = orders?.find((o) => o.status === "pending")
   const currentService = activeOrder || pendingOrder
+
+  // Check if there's a pending upgrade request for this order
+  const pendingUpgrade = currentService?.upgrade_requests && currentService.upgrade_requests.length > 0 
+    ? currentService.upgrade_requests[0] 
+    : null
 
   // Find latest schedule to determine technician
   const latestSchedule = schedules && schedules.length > 0 
@@ -24,6 +36,37 @@ export function ServicesPage() {
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("id-ID", { day: "2-digit", month: "long", year: "numeric" })
+  }
+
+  const handleOpenUpgrade = async () => {
+    if (pendingUpgrade) return // Already pending
+    setShowUpgradeModal(true)
+    try {
+      const res = await api.get("/pakets")
+      // Filter out current package and inactive packages
+      const available = res.data.filter((p: any) => p.is_aktif && p.id !== currentService?.paket_id)
+      setPakets(available)
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  const handleSubmitUpgrade = async () => {
+    if (!selectedPaketId || !currentService) return
+    setIsSubmitting(true)
+    try {
+      await api.post(`/orders/${currentService.id}/upgrade`, {
+        new_paket_id: selectedPaketId
+      })
+      alert("Permintaan upgrade berhasil dikirim. Menunggu persetujuan admin.")
+      setShowUpgradeModal(false)
+      mutate() // Refresh order data
+    } catch (err: any) {
+      console.error(err)
+      alert(err.response?.data?.message || "Gagal mengirim permintaan.")
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   if (!orders) {
@@ -103,15 +146,15 @@ export function ServicesPage() {
              </div>
              <div className="flex justify-between items-center">
                 <span className="text-[13px] font-bold text-slate-500 flex items-center gap-2"><Globe className="w-4 h-4 text-slate-400"/> IP Address</span>
-                <span className="text-[14px] font-extrabold text-slate-800 bg-slate-100 px-3 py-1 rounded-lg">DHCP Dinamis</span>
+                <span className="text-[14px] font-extrabold text-slate-800 bg-slate-100 px-3 py-1 rounded-lg">{currentService.ip_address || "Menunggu Konfigurasi"}</span>
              </div>
              <div className="flex justify-between items-center">
                 <span className="text-[13px] font-bold text-slate-500 flex items-center gap-2"><ShieldCheck className="w-4 h-4 text-slate-400"/> FUP (Batas Wajar)</span>
-                <span className="text-[14px] font-extrabold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-lg border border-emerald-100">Tanpa Batas (Unlimited)</span>
+                <span className="text-[14px] font-extrabold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-lg border border-emerald-100">{currentService.paket.fup || "Tanpa Batas (Unlimited)"}</span>
              </div>
              <div className="flex justify-between items-center">
                 <span className="text-[13px] font-bold text-slate-500 flex items-center gap-2"><Zap className="w-4 h-4 text-slate-400"/> Tipe Perangkat</span>
-                <span className="text-[14px] font-extrabold text-slate-800">Modem ONT Dual-Band</span>
+                <span className="text-[14px] font-extrabold text-slate-800">{currentService.tipe_perangkat || "Menunggu Pemasangan"}</span>
              </div>
           </div>
         </div>
@@ -165,17 +208,88 @@ export function ServicesPage() {
                </div>
             </Link>
             
-            <button onClick={() => alert("Fitur Upgrade Paket sedang dalam tahap pengembangan. Hubungi CS untuk upgrade langsung.")} className="flex items-center gap-4 p-4 rounded-xl border border-slate-200 hover:border-orange-500 hover:bg-orange-50/50 transition-all group text-left">
-               <div className="w-12 h-12 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+            <button 
+               onClick={handleOpenUpgrade} 
+               disabled={pendingUpgrade !== null || currentService.status !== 'aktif'}
+               className={`flex items-center gap-4 p-4 rounded-xl border transition-all group text-left
+                 ${pendingUpgrade || currentService.status !== 'aktif' ? 'border-slate-200 bg-slate-50 opacity-70 cursor-not-allowed' : 'border-slate-200 hover:border-orange-500 hover:bg-orange-50/50'}
+               `}>
+               <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 transition-transform
+                 ${pendingUpgrade || currentService.status !== 'aktif' ? 'bg-slate-200 text-slate-500' : 'bg-orange-100 text-orange-600 group-hover:scale-110'}
+               `}>
                   <Zap className="w-5 h-5" />
                </div>
                <div>
-                  <h4 className="text-[14px] font-bold text-slate-800">Upgrade Paket</h4>
-                  <p className="text-[12px] font-medium text-slate-500 mt-0.5">Butuh kecepatan lebih? Ganti paket internet Anda kapan saja.</p>
+                  <h4 className="text-[14px] font-bold text-slate-800">
+                    {pendingUpgrade ? 'Upgrade Sedang Diproses' : 'Upgrade Paket'}
+                  </h4>
+                  <p className="text-[12px] font-medium text-slate-500 mt-0.5">
+                    {currentService.status !== 'aktif' 
+                      ? 'Layanan belum aktif' 
+                      : pendingUpgrade 
+                        ? 'Menunggu persetujuan dari tim Admin.'
+                        : 'Butuh kecepatan lebih? Ganti paket internet Anda.'}
+                  </p>
                </div>
             </button>
          </div>
       </div>
+
+      {/* Upgrade Modal */}
+      {showUpgradeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl w-full max-w-lg shadow-xl overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="flex items-center justify-between p-6 border-b border-slate-100">
+              <div>
+                <h3 className="text-lg font-bold text-slate-800">Pilih Paket Baru</h3>
+                <p className="text-sm text-slate-500">Pilih kecepatan internet yang Anda inginkan</p>
+              </div>
+              <button onClick={() => setShowUpgradeModal(false)} className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-2 rounded-lg transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="p-6 max-h-[60vh] overflow-y-auto space-y-4 bg-slate-50">
+              {pakets.length === 0 ? (
+                <div className="text-center p-8">
+                  <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                </div>
+              ) : (
+                pakets.map(paket => (
+                  <label key={paket.id} className={`flex items-start gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${selectedPaketId === paket.id ? 'border-orange-500 bg-orange-50/30 shadow-sm' : 'border-slate-200 bg-white hover:border-slate-300'}`}>
+                    <input 
+                      type="radio" 
+                      name="upgrade_paket" 
+                      className="mt-1 w-4 h-4 text-orange-600 focus:ring-orange-500" 
+                      checked={selectedPaketId === paket.id}
+                      onChange={() => setSelectedPaketId(paket.id)}
+                    />
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-bold text-slate-800">{paket.nama}</h4>
+                        <span className="text-orange-600 font-extrabold">{paket.kecepatan} Mbps</span>
+                      </div>
+                      <p className="text-sm font-bold text-slate-800 mt-2">{formatRupiah(paket.harga)} <span className="text-xs font-normal text-slate-500">/ bulan</span></p>
+                      {paket.fup && <p className="text-xs font-medium text-emerald-600 mt-1 flex items-center gap-1"><ShieldCheck className="w-3 h-3"/> FUP: {paket.fup}</p>}
+                    </div>
+                  </label>
+                ))
+              )}
+            </div>
+
+            <div className="p-6 border-t border-slate-100 bg-white flex justify-end gap-3">
+              <button onClick={() => setShowUpgradeModal(false)} className="px-5 py-2.5 rounded-xl font-bold text-slate-600 hover:bg-slate-100 transition-colors">Batal</button>
+              <button 
+                onClick={handleSubmitUpgrade} 
+                disabled={!selectedPaketId || isSubmitting}
+                className="px-5 py-2.5 bg-orange-600 text-white rounded-xl font-bold hover:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {isSubmitting ? 'Mengirim...' : 'Kirim Permintaan'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   )

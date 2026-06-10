@@ -25,4 +25,31 @@ class Notification extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public static function notifyAdmins($title, $message, $type = 'system')
+    {
+        $admins = User::where('role', 'admin')->get();
+        foreach ($admins as $admin) {
+            self::create([
+                'user_id' => $admin->id,
+                'title' => $title,
+                'message' => $message,
+                'type' => $type,
+            ]);
+        }
+    }
+
+    public static function notifyTechnician($technicianName, $title, $message, $type = 'ticket')
+    {
+        // Find technician by name
+        $technician = User::where('role', 'teknisi')->where('name', $technicianName)->first();
+        if ($technician) {
+            self::create([
+                'user_id' => $technician->id,
+                'title' => $title,
+                'message' => $message,
+                'type' => $type,
+            ]);
+        }
+    }
 }

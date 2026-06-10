@@ -18,6 +18,8 @@ class Order extends Model
         'tanggal_mulai',
         'tanggal_selesai',
         'total_harga',
+        'ip_address',
+        'tipe_perangkat',
     ];
 
     protected $casts = [
@@ -33,5 +35,10 @@ class Order extends Model
     public function paket()
     {
         return $this->belongsTo(Paket::class);
+    }
+
+    public function upgradeRequests()
+    {
+        return $this->hasMany(UpgradeRequest::class);
     }
 }

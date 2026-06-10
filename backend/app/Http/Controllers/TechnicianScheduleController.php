@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\TechnicianSchedule;
+use App\Models\Notification;
 use Illuminate\Http\Request;
 
 class TechnicianScheduleController extends Controller
@@ -47,6 +48,20 @@ class TechnicianScheduleController extends Controller
         // Update ticket status to Diproses
         $ticket->update(['status' => 'Diproses']);
 
+        Notification::create([
+            'user_id' => $ticket->user_id,
+            'title' => 'Jadwal Kunjungan Teknisi',
+            'message' => 'Teknisi ' . $request->nama_teknisi . ' telah dijadwalkan untuk kunjungan pada tanggal ' . \Carbon\Carbon::parse($request->tanggal_kunjungan)->format('d/m/Y') . ' terkait tiket Anda.',
+            'type' => 'ticket_update',
+        ]);
+
+        Notification::notifyTechnician(
+            $request->nama_teknisi,
+            'Tugas Kunjungan Baru',
+            'Anda dijadwalkan untuk kunjungan pada tanggal ' . \Carbon\Carbon::parse($request->tanggal_kunjungan)->format('d/m/Y') . ' untuk tiket #' . $ticket->id,
+            'ticket_update'
+        );
+
         return response()->json($schedule, 201);
     }
 
@@ -65,6 +80,13 @@ class TechnicianScheduleController extends Controller
         if ($request->status === 'Selesai') {
             $schedule->ticket->update(['status' => 'Selesai']);
         }
+
+        Notification::create([
+            'user_id' => $schedule->user_id,
+            'title' => 'Status Kunjungan Diperbarui',
+            'message' => 'Status kunjungan teknisi untuk tiket Anda telah diubah menjadi ' . strtoupper($request->status) . '.',
+            'type' => 'ticket_update',
+        ]);
 
         return response()->json($schedule);
     }

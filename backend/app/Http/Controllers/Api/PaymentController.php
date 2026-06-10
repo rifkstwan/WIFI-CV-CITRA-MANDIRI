@@ -73,7 +73,7 @@ class PaymentController extends Controller
     {
         $order = Order::with(['paket', 'user'])->findOrFail($id);
 
-        if (auth()->user()->id !== $order->user_id && !auth()->user()->hasRole(['admin', 'owner'])) {
+        if (auth()->user()->id !== $order->user_id && !auth()->user()->hasRole('admin')) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -113,7 +113,7 @@ class PaymentController extends Controller
     {
         $billing = Billing::with(['order.paket', 'user'])->findOrFail($id);
 
-        if (auth()->user()->id !== $billing->user_id && !auth()->user()->hasRole(['admin', 'owner'])) {
+        if (auth()->user()->id !== $billing->user_id && !auth()->user()->hasRole('admin')) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 

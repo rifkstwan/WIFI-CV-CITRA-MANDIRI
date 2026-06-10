@@ -8,6 +8,7 @@ type Paket = {
   nama: string
   deskripsi: string | null
   kecepatan: number
+  fup: string | null
   harga: number
   durasi: number
   is_aktif: boolean
@@ -21,7 +22,7 @@ function formatRupiah(angka: number) {
   }).format(angka)
 }
 
-const emptyForm = { nama: "", deskripsi: "", kecepatan: "", harga: "", durasi: "30", is_aktif: true }
+const emptyForm = { nama: "", deskripsi: "", kecepatan: "", fup: "", harga: "", durasi: "30", is_aktif: true }
 
 export function AdminPaketsPage() {
   const queryClient = useQueryClient()
@@ -66,6 +67,7 @@ export function AdminPaketsPage() {
       nama: paket.nama,
       deskripsi: paket.deskripsi || "",
       kecepatan: String(paket.kecepatan),
+      fup: paket.fup || "",
       harga: String(paket.harga),
       durasi: String(paket.durasi),
       is_aktif: paket.is_aktif,
@@ -218,6 +220,16 @@ export function AdminPaketsPage() {
                     className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
                     placeholder="Contoh: Sangat cocok untuk gaming dan streaming 4K"
                     value={form.deskripsi} onChange={e => setForm({...form, deskripsi: e.target.value})}
+                  />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">FUP (Batas Wajar)</label>
+                  <input 
+                    type="text" 
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                    placeholder="Contoh: Tanpa Batas (Unlimited) atau 500GB"
+                    value={form.fup} onChange={e => setForm({...form, fup: e.target.value})}
                   />
                 </div>
 

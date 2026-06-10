@@ -44,4 +44,9 @@ class User extends Authenticatable
             'wa_notif'          => 'boolean',
         ];
     }
+
+    public function upgradeRequests()
+    {
+        return $this->hasMany(UpgradeRequest::class);
+    }
 }

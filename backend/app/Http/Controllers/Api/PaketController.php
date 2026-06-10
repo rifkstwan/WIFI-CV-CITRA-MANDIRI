@@ -37,6 +37,7 @@ class PaketController extends Controller
             'harga'     => 'required|integer|min:0',
             'durasi'    => 'required|integer|min:1',
             'deskripsi' => 'nullable|string',
+            'fup'       => 'nullable|string|max:255',
             'is_aktif'  => 'boolean',
         ]);
 
@@ -52,6 +53,7 @@ class PaketController extends Controller
             'harga'     => 'sometimes|integer|min:0',
             'durasi'    => 'sometimes|integer|min:1',
             'deskripsi' => 'nullable|string',
+            'fup'       => 'nullable|string|max:255',
             'is_aktif'  => 'boolean',
         ]);
 

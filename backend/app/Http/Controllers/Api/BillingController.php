@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Billing;
 use App\Models\Order;
+use App\Models\Notification;
 use Illuminate\Http\Request;
 use App\Services\WhatsAppService;
 
@@ -47,6 +48,13 @@ class BillingController extends Controller
 
         $billing->load('order.user');
         
+        Notification::create([
+            'user_id' => $billing->user_id,
+            'title' => 'Tagihan Baru',
+            'message' => 'Tagihan internet Anda untuk bulan ini sebesar Rp' . number_format($billing->jumlah_tagihan, 0, ',', '.') . ' telah diterbitkan.',
+            'type' => 'billing',
+        ]);
+
         try {
             WhatsAppService::sendBillingNotification($billing->order->user, $billing);
         } catch (\Exception $e) {
@@ -65,6 +73,13 @@ class BillingController extends Controller
         ]);
 
         $billing->load('order.user');
+
+        Notification::create([
+            'user_id' => $billing->user_id,
+            'title' => 'Pembayaran Berhasil',
+            'message' => 'Pembayaran untuk tagihan sebesar Rp' . number_format($billing->jumlah_tagihan, 0, ',', '.') . ' telah berhasil diproses.',
+            'type' => 'billing',
+        ]);
 
         try {
             WhatsAppService::sendBillingNotification($billing->order->user, $billing);

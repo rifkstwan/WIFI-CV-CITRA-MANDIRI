@@ -13,6 +13,7 @@ import { AdminDashboardPage } from "../pages/admin/AdminDashboardPage"
 import { AdminOrdersPage } from "../pages/admin/AdminOrdersPage"
 import { AdminPaketsPage } from "../pages/admin/AdminPaketsPage"
 import { AdminCustomersPage } from "../pages/admin/AdminCustomersPage"
+import { AdminUpgradesPage } from "../pages/admin/AdminUpgradesPage"
 
 import { AdminBillingPage } from "../pages/admin/AdminBillingPage"
 import { AdminPaymentsPage } from "../pages/admin/AdminPaymentsPage"
@@ -24,7 +25,6 @@ import { AdminProfilePage } from "../pages/admin/AdminProfilePage"
 import { AdminSettingsPage } from "../pages/admin/AdminSettingsPage"
 import { AdminNetworkPage } from "../pages/admin/AdminNetworkPage"
 import { AdminTestimonialsPage } from "../pages/admin/AdminTestimonialsPage"
-import { OwnerReportsPage } from "../pages/owner/OwnerReportsPage"
 import { TechnicianDashboardLayout } from "../layouts/TechnicianDashboardLayout"
 import { TechnicianDashboardPage } from "../pages/technician/TechnicianDashboardPage"
 import { TechnicianTicketsPage } from "../pages/technician/TechnicianTicketsPage"
@@ -91,7 +91,6 @@ function SmartRedirect() {
   }
 
   if (!token) return <Navigate to="/login" replace />
-  if (roles.includes("owner")) return <Navigate to="/owner/reports" replace />
   if (roles.includes("admin")) return <Navigate to="/admin" replace />
   if (roles.includes("teknisi")) return <Navigate to="/technician" replace />
   return <Navigate to="/dashboard" replace />
@@ -206,6 +205,7 @@ export function AppRoutes() {
         <Route path="/admin/testimonials" element={<ProtectedRoute requiredRole="admin"><AdminDashboardLayout><AdminTestimonialsPage /></AdminDashboardLayout></ProtectedRoute>} />
         <Route path="/admin/profile" element={<ProtectedRoute requiredRole="admin"><AdminDashboardLayout><AdminProfilePage /></AdminDashboardLayout></ProtectedRoute>} />
         <Route path="/admin/settings" element={<ProtectedRoute requiredRole="admin"><AdminDashboardLayout><AdminSettingsPage /></AdminDashboardLayout></ProtectedRoute>} />
+        <Route path="/admin/upgrades" element={<ProtectedRoute requiredRole="admin"><AdminDashboardLayout><AdminUpgradesPage /></AdminDashboardLayout></ProtectedRoute>} />
 
         {/* Technician only */}
         <Route
@@ -299,15 +299,7 @@ export function AppRoutes() {
           }
         />
 
-        {/* Owner only */}
-        <Route
-          path="/owner/reports"
-          element={
-            <ProtectedRoute requiredRole="owner">
-              <OwnerReportsPage />
-            </ProtectedRoute>
-          }
-        />
+        {/* End of routes */}
 
         <Route path="*" element={<Navigate to="/redirect" replace />} />
       </Routes>

@@ -8,6 +8,7 @@ use App\Mail\OrderCreatedMail;
 use App\Mail\OrderRejectedMail;
 use App\Models\Order;
 use App\Models\Paket;
+use App\Models\Notification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use App\Services\WhatsAppService;
@@ -17,7 +18,9 @@ class OrderController extends Controller
     // Customer: lihat order milik sendiri
     public function myOrders(Request $request)
     {
-        $orders = Order::with('paket')
+        $orders = Order::with(['paket', 'upgradeRequests' => function ($query) {
+            $query->where('status', 'pending');
+        }])
             ->where('user_id', $request->user()->id)
             ->orderByDesc('created_at')
             ->get();
@@ -88,6 +91,12 @@ class OrderController extends Controller
             \Log::error('Gagal kirim WA order created: ' . $e->getMessage());
         }
 
+        Notification::notifyAdmins(
+            'Pemesanan Baru',
+            'Pelanggan ' . $order->user->name . ' telah memesan paket ' . $paket->nama . '.',
+            'order'
+        );
+
         return response()->json([
             'message' => 'Order berhasil dibuat',
             'order'   => $order,
@@ -127,6 +136,13 @@ class OrderController extends Controller
         $order->update($request->only('status', 'tanggal_mulai', 'tanggal_selesai'));
         $order->load(['user', 'paket']);
 
+        Notification::create([
+            'user_id' => $order->user_id,
+            'title' => 'Status Layanan Diperbarui',
+            'message' => 'Status layanan internet Anda telah diubah menjadi ' . strtoupper($order->status),
+            'type' => 'order_update',
+        ]);
+
         // Kirim email sesuai status
         try {
             if ($order->status === 'aktif') {
@@ -140,6 +156,24 @@ class OrderController extends Controller
 
         return response()->json([
             'message' => 'Status order diperbarui',
+            'order'   => $order,
+        ]);
+    }
+
+    // Admin: update spesifikasi teknis
+    public function updateSpecs(Request $request, $id)
+    {
+        $request->validate([
+            'ip_address'      => 'nullable|string|max:100',
+            'tipe_perangkat'  => 'nullable|string|max:100',
+        ]);
+
+        $order = Order::findOrFail($id);
+        $order->update($request->only('ip_address', 'tipe_perangkat'));
+        $order->load(['user', 'paket']);
+
+        return response()->json([
+            'message' => 'Spesifikasi teknis diperbarui',
             'order'   => $order,
         ]);
     }

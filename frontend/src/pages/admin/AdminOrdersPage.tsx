@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { Search, CheckCircle, XCircle, ShieldAlert, Package, Printer, Zap, Check } from "lucide-react"
+import { Search, CheckCircle, XCircle, ShieldAlert, Package, Printer, Zap, Check, Settings, X } from "lucide-react"
 import api from "../../services/api"
 import type { Order } from "../../hooks/useOrders"
 
@@ -22,12 +22,17 @@ const statusConfig = {
 
 type AdminOrder = Order & {
   user: { id: number; name: string; email: string }
+  ip_address?: string
+  tipe_perangkat?: string
 }
 
 export function AdminOrdersPage() {
   const queryClient = useQueryClient()
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("semua")
+  const [isSpecsModalOpen, setIsSpecsModalOpen] = useState(false)
+  const [specsOrder, setSpecsOrder] = useState<AdminOrder | null>(null)
+  const [specsForm, setSpecsForm] = useState({ ip_address: "", tipe_perangkat: "" })
 
   const { data: orders = [], isLoading } = useQuery<AdminOrder[]>({
     queryKey: ["admin-orders"],
@@ -54,6 +59,17 @@ export function AdminOrdersPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-orders"] })
       queryClient.invalidateQueries({ queryKey: ["report-summary"] })
+    },
+  })
+
+  const updateSpecsMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number, data: any }) => {
+      const res = await api.patch(`/orders/${id}/specs`, data)
+      return res.data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-orders"] })
+      setIsSpecsModalOpen(false)
     },
   })
 
@@ -272,6 +288,20 @@ export function AdminOrdersPage() {
                               </button>
                             )}
                             <button 
+                              onClick={() => {
+                                setSpecsOrder(order)
+                                setSpecsForm({
+                                  ip_address: order.ip_address || "",
+                                  tipe_perangkat: order.tipe_perangkat || ""
+                                })
+                                setIsSpecsModalOpen(true)
+                              }}
+                              className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors border border-transparent hover:border-blue-100"
+                              title="Update Spesifikasi Teknis"
+                            >
+                              <Settings className="w-4 h-4" />
+                            </button>
+                            <button 
                               onClick={() => handleSelesai(order.id)}
                               disabled={updateStatus.isPending}
                               className="p-1.5 text-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors disabled:opacity-50 border border-transparent hover:border-indigo-100"
@@ -297,6 +327,60 @@ export function AdminOrdersPage() {
           </table>
         </div>
       </div>
+
+      {/* Specs Modal */}
+      {isSpecsModalOpen && specsOrder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-xl overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="flex justify-between items-center p-6 border-b border-slate-100 bg-slate-50/50">
+              <h2 className="text-lg font-bold text-slate-900">
+                Spesifikasi Teknis
+              </h2>
+              <button onClick={() => setIsSpecsModalOpen(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <form onSubmit={(e) => {
+              e.preventDefault()
+              updateSpecsMutation.mutate({ id: specsOrder.id, data: specsForm })
+            }} className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">IP Address</label>
+                <input 
+                  type="text" 
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                  placeholder="Contoh: 192.168.1.50 atau DHCP Dinamis"
+                  value={specsForm.ip_address} onChange={e => setSpecsForm({...specsForm, ip_address: e.target.value})}
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Tipe Perangkat (Modem/Router)</label>
+                <input 
+                  type="text" 
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                  placeholder="Contoh: ZTE F609 atau Modem ONT Dual-Band"
+                  value={specsForm.tipe_perangkat} onChange={e => setSpecsForm({...specsForm, tipe_perangkat: e.target.value})}
+                />
+              </div>
+
+              <div className="pt-4 flex items-center justify-end gap-3">
+                <button type="button" onClick={() => setIsSpecsModalOpen(false)} className="px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 rounded-xl transition-colors">
+                  Batal
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={updateSpecsMutation.isPending}
+                  className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold transition-colors disabled:opacity-50"
+                >
+                  {updateSpecsMutation.isPending ? "Menyimpan..." : "Simpan Perubahan"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
