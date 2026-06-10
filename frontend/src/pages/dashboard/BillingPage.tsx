@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query"
 import { useAuth } from "../../contexts/AuthContext"
 import api from "../../services/api"
 import { CreditCard, CheckCircle2, Clock, Download, AlertCircle, ArrowRight, Wallet, Info, FileText } from "lucide-react"
+import { useMidtrans } from "../../hooks/useMidtrans"
 import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
 
@@ -27,6 +28,7 @@ export function BillingPage() {
     return new Date(dateString).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" })
   }
 
+  const { isReady: isMidtransReady } = useMidtrans()
   const [isPaying, setIsPaying] = useState<number | null>(null)
 
   const handlePayment = async (billingId: number) => {
@@ -249,9 +251,9 @@ export function BillingPage() {
                       </div>
                       <button
                         onClick={() => handlePayment(billing.id)}
-                        disabled={isPaying === billing.id}
+                        disabled={isPaying === billing.id || !isMidtransReady}
                         className={`w-full md:w-auto px-6 py-2.5 text-white text-[13px] font-bold rounded-xl transition-all shadow-sm active:scale-[0.98] disabled:opacity-50 flex justify-center items-center gap-2 ${billing.status === 'overdue' ? 'bg-red-600 hover:bg-red-700' : 'bg-slate-900 hover:bg-slate-800'}`}>
-                        {isPaying === billing.id ? "Memproses..." : "Bayar Sekarang"} <ArrowRight className="w-4 h-4" />
+                        {!isMidtransReady ? "Memuat Gateway..." : isPaying === billing.id ? "Memproses..." : "Bayar Sekarang"} <ArrowRight className="w-4 h-4" />
                       </button>
                    </div>
                 </div>

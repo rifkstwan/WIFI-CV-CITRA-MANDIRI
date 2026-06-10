@@ -42,6 +42,10 @@ export function UserDashboardLayout({ children }: UserDashboardLayoutProps) {
   const searchRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
+    document.title = "Portal Pelanggan - CV Citra Mandiri"
+  }, [])
+
+  useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
         setShowSearchDropdown(false)

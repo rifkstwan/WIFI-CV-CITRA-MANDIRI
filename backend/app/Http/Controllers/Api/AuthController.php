@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
+use App\Services\WhatsAppService;
 
 class AuthController extends Controller
 {
@@ -16,16 +17,21 @@ class AuthController extends Controller
         $request->validate([
             'name'     => 'required|string|max:255',
             'email'    => 'required|email|unique:users',
+            'phone'    => 'required|string|max:20',
             'password' => 'required|string|min:8|confirmed',
         ]);
 
         $user = User::create([
             'name'     => $request->name,
             'email'    => $request->email,
+            'phone'    => $request->phone,
             'password' => Hash::make($request->password),
         ]);
 
         $user->assignRole('customer');
+
+        // Send Welcome Message via WhatsApp
+        WhatsAppService::sendWelcomeMessage($user);
 
         $token = $user->createToken('auth_token')->plainTextToken;
 

@@ -22,6 +22,8 @@ import { AdminReportsPage } from "../pages/admin/AdminReportsPage"
 import { AdminNotificationsPage } from "../pages/admin/AdminNotificationsPage"
 import { AdminProfilePage } from "../pages/admin/AdminProfilePage"
 import { AdminSettingsPage } from "../pages/admin/AdminSettingsPage"
+import { AdminNetworkPage } from "../pages/admin/AdminNetworkPage"
+import { AdminTestimonialsPage } from "../pages/admin/AdminTestimonialsPage"
 import { OwnerReportsPage } from "../pages/owner/OwnerReportsPage"
 import { TechnicianDashboardLayout } from "../layouts/TechnicianDashboardLayout"
 import { TechnicianDashboardPage } from "../pages/technician/TechnicianDashboardPage"
@@ -198,9 +200,12 @@ export function AppRoutes() {
         <Route path="/admin/payments" element={<ProtectedRoute requiredRole="admin"><AdminDashboardLayout><AdminPaymentsPage /></AdminDashboardLayout></ProtectedRoute>} />
         <Route path="/admin/tickets" element={<ProtectedRoute requiredRole="admin"><AdminDashboardLayout><AdminTicketsPage /></AdminDashboardLayout></ProtectedRoute>} />
         <Route path="/admin/technicians" element={<ProtectedRoute requiredRole="admin"><AdminDashboardLayout><AdminTechniciansPage /></AdminDashboardLayout></ProtectedRoute>} />
+        <Route path="/admin/network" element={<ProtectedRoute requiredRole="admin"><AdminDashboardLayout><AdminNetworkPage /></AdminDashboardLayout></ProtectedRoute>} />
         <Route path="/admin/notifications" element={<ProtectedRoute requiredRole="admin"><AdminDashboardLayout><AdminNotificationsPage /></AdminDashboardLayout></ProtectedRoute>} />
         <Route path="/admin/reports" element={<ProtectedRoute requiredRole="admin"><AdminDashboardLayout><AdminReportsPage /></AdminDashboardLayout></ProtectedRoute>} />
-        <Route path="/admin/settings" element={<ProtectedRoute requiredRole="admin"><AdminDashboardLayout><AdminProfilePage /></AdminDashboardLayout></ProtectedRoute>} />
+        <Route path="/admin/testimonials" element={<ProtectedRoute requiredRole="admin"><AdminDashboardLayout><AdminTestimonialsPage /></AdminDashboardLayout></ProtectedRoute>} />
+        <Route path="/admin/profile" element={<ProtectedRoute requiredRole="admin"><AdminDashboardLayout><AdminProfilePage /></AdminDashboardLayout></ProtectedRoute>} />
+        <Route path="/admin/settings" element={<ProtectedRoute requiredRole="admin"><AdminDashboardLayout><AdminSettingsPage /></AdminDashboardLayout></ProtectedRoute>} />
 
         {/* Technician only */}
         <Route
@@ -229,6 +234,16 @@ export function AppRoutes() {
             <ProtectedRoute allowedRoles={["teknisi", "admin"]}>
               <TechnicianDashboardLayout>
                 <TechnicianTicketsPage />
+              </TechnicianDashboardLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/technician/network"
+          element={
+            <ProtectedRoute allowedRoles={["teknisi", "admin"]}>
+              <TechnicianDashboardLayout>
+                <AdminNetworkPage />
               </TechnicianDashboardLayout>
             </ProtectedRoute>
           }
@@ -286,12 +301,12 @@ export function AppRoutes() {
 
         {/* Owner only */}
         <Route
-         path="/owner/reports"
+          path="/owner/reports"
           element={
-        <ProtectedRoute requiredRole="owner">
-        <OwnerReportsPage />
-        </ProtectedRoute>
-        }
+            <ProtectedRoute requiredRole="owner">
+              <OwnerReportsPage />
+            </ProtectedRoute>
+          }
         />
 
         <Route path="*" element={<Navigate to="/redirect" replace />} />

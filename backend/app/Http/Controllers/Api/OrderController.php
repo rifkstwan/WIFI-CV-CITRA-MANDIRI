@@ -10,6 +10,7 @@ use App\Models\Order;
 use App\Models\Paket;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
+use App\Services\WhatsAppService;
 
 class OrderController extends Controller
 {
@@ -78,6 +79,13 @@ class OrderController extends Controller
             Mail::to($order->user->email)->send(new OrderCreatedMail($order));
         } catch (\Exception $e) {
             \Log::error('Gagal kirim email order created: ' . $e->getMessage());
+        }
+
+        // Kirim WA notifikasi ke customer
+        try {
+            WhatsAppService::sendOrderNotification($order->user, $order, $paket);
+        } catch (\Exception $e) {
+            \Log::error('Gagal kirim WA order created: ' . $e->getMessage());
         }
 
         return response()->json([

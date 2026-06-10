@@ -12,11 +12,12 @@ import {
   MapPin,
   Camera,
   History, 
-  User,
   LogOut,
   Menu,
   X,
-  ShieldAlert
+  ShieldAlert,
+  Activity,
+  User
 } from "lucide-react"
 import logoImg from "../assets/profile.jpg"
 
@@ -37,6 +38,10 @@ export function TechnicianDashboardLayout({ children }: TechnicianDashboardLayou
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
+  useEffect(() => {
+    document.title = "Panel Teknisi - CV Citra Mandiri"
+  }, [])
+
   const handleLogout = async () => {
     await logout()
     navigate("/login")
@@ -47,6 +52,7 @@ export function TechnicianDashboardLayout({ children }: TechnicianDashboardLayou
     { name: "Dashboard", path: "/technician", icon: LayoutDashboard },
     { name: "Jadwal Saya", path: "/technician/schedule", icon: Calendar },
     { name: "Tiket Gangguan", path: "/technician/tickets", icon: Wrench },
+    { name: "Monitoring Jaringan", path: "/technician/network", icon: Activity },
     { name: "Instalasi Baru", path: "/technician/installations", icon: Package },
     { name: "Survey Lokasi", path: "/technician/surveys", icon: MapPin },
     { name: "Dokumentasi", path: "/technician/documentation", icon: Camera },

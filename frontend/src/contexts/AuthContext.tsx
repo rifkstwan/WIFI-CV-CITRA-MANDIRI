@@ -12,7 +12,7 @@ type AuthContextType = {
   roles: string[]
   token: string | null
   login: (email: string, password: string) => Promise<void>
-  register: (name: string, email: string, password: string) => Promise<void>
+  register: (name: string, email: string, phone: string, password: string) => Promise<void>
   logout: () => Promise<void>
   isLoading: boolean
 }
@@ -51,10 +51,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setRoles(newRoles)
   }
 
-  const register = async (name: string, email: string, password: string) => {
+  const register = async (name: string, email: string, phone: string, password: string) => {
     const res = await api.post("/register", {
       name,
       email,
+      phone,
       password,
       password_confirmation: password,
     })

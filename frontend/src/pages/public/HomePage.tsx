@@ -1,50 +1,61 @@
 import { Link } from "react-router-dom"
 import { useState, useEffect } from "react"
+import { useQuery } from "@tanstack/react-query"
+import api from "../../services/api"
+import { usePublicTestimonials } from "../../hooks/useTestimonials"
+import { Star, Wifi, Rocket, Zap, Shield, Crown } from "lucide-react"
 import "./HomePage.css"
 
-type Plan = {
-  name: string
-  speed: string
-  price: string
-  features: string[]
+type Package = {
+  id: number
+  nama: string
+  kecepatan: number
+  harga: number
+  deskripsi: string
 }
 
-const testimonials = [
+const dummyTestimonials = [
   {
     quote: "Koneksi internet dari CV. Citra Mandiri sangat stabil. Sangat membantu pekerjaan WFH saya setiap hari tanpa hambatan.",
     name: "Budi Santoso",
     role: "Pelanggan Rumahan",
-    avatar: "https://i.pravatar.cc/150?u=budi"
+    avatar: "https://i.pravatar.cc/150?u=budi",
+    rating: 5
   },
   {
     quote: "Pelayanan teknisi sangat cepat tanggap. Saat ada gangguan, langsung ditangani dalam hitungan jam. Sangat memuaskan!",
     name: "Siti Aminah",
     role: "Pemilik UMKM",
-    avatar: "https://i.pravatar.cc/150?u=siti"
+    avatar: "https://i.pravatar.cc/150?u=siti",
+    rating: 5
   },
   {
     quote: "Harga paketnya sangat terjangkau dibanding provider lain dengan kecepatan yang sama. Mantap untuk tugas kuliah.",
     name: "Rudi Hermawan",
     role: "Mahasiswa",
-    avatar: "https://i.pravatar.cc/150?u=rudi"
+    avatar: "https://i.pravatar.cc/150?u=rudi",
+    rating: 4
   },
   {
     quote: "Proses pemasangan sangat rapi dan cepat. Tim marketing juga menjelaskan detail paket dengan sangat jelas dan ramah.",
     name: "Linda Kusuma",
     role: "Ibu Rumah Tangga",
-    avatar: "https://i.pravatar.cc/150?u=linda"
+    avatar: "https://i.pravatar.cc/150?u=linda",
+    rating: 5
   },
   {
     quote: "Sudah berlangganan lebih dari setahun dan jarang sekali ada masalah jaringan. Sangat direkomendasikan untuk freelance.",
     name: "Ahmad Fauzi",
     role: "Freelancer",
-    avatar: "https://i.pravatar.cc/150?u=ahmad"
+    avatar: "https://i.pravatar.cc/150?u=ahmad",
+    rating: 5
   },
   {
     quote: "Ping untuk bermain game online sangat kecil dan stabil. Tidak ada lag sama sekali saat push rank. The best!",
     name: "Diki Pratama",
     role: "Gamer",
-    avatar: "https://i.pravatar.cc/150?u=diki"
+    avatar: "https://i.pravatar.cc/150?u=diki",
+    rating: 5
   }
 ];
 
@@ -72,7 +83,6 @@ const faqs = [
 ];
 
 export function HomePage() {
-  const [menuOpen, setMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const [activeFaq, setActiveFaq] = useState<number | null>(0)
 
@@ -82,25 +92,26 @@ export function HomePage() {
     return () => window.removeEventListener("scroll", onScroll)
   }, [])
 
-  const plans: Plan[] = [
-    {
-      name: "Paket Dasar",
-      speed: "10 Mbps",
-      price: menuOpen ? "225" : "250",
-      features: ["Kecepatan hingga 10 Mbps", "Koneksi stabil 24 jam", "Instalasi gratis", "Dukungan teknis via telepon", "Garansi uptime 99%"],
+  const { data: packages = [], isLoading } = useQuery<Package[]>({
+    queryKey: ["public-packages"],
+    queryFn: async () => {
+      const res = await api.get("/pakets")
+      return res.data
     },
-    {
-      name: "Paket Standar",
-      speed: "50 Mbps",
-      price: menuOpen ? "382" : "450",
-      features: ["Kecepatan hingga 50 Mbps", "Koneksi stabil 24 jam", "Instalasi gratis", "Dukungan teknis prioritas", "Garansi uptime 99.5%", "Router Wi-Fi gratis"],
-    },
-    {
-      name: "Paket Unggulan",
-      speed: "100 Mbps",
-      price: menuOpen ? "722" : "850",
-      features: ["Kecepatan hingga 100 Mbps", "Dedicated bandwidth", "Instalasi gratis", "Dukungan teknis 24/7 on-site", "Garansi uptime 99.9% (SLA)", "Router Wi-Fi gratis", "IP publik statis"],
-    },
+  })
+
+  const { data: publicTestimonials = [], isLoading: isLoadingTestimonials } = usePublicTestimonials()
+
+  // Gabungkan dummy dengan testimoni asli dari database
+  const allTestimonials = [
+    ...dummyTestimonials,
+    ...publicTestimonials.map(t => ({
+      quote: t.quote,
+      name: t.name,
+      role: t.role || "Pelanggan Setia",
+      avatar: t.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(t.name)}&background=eff6ff&color=2563eb`,
+      rating: t.rating
+    }))
   ]
 
 
@@ -463,105 +474,69 @@ export function HomePage() {
               Semua paket sudah termasuk instalasi gratis dan dukungan teknis.
             </p>
 
-            {/* Toggle bulanan / tahunan */}
-            <div className="pricing-toggle">
-              <button
-                className={`pricing-toggle-btn${!menuOpen ? " active" : ""}`}
-                onClick={() => setMenuOpen(false)}
-              >
-                Bulanan
-              </button>
-              <button
-                className={`pricing-toggle-btn${menuOpen ? " active" : ""}`}
-                onClick={() => setMenuOpen(true)}
-              >
-                Tahunan
-                <span className="pricing-badge">Hemat 15%</span>
-              </button>
-            </div>
           </div>
 
           {/* Cards */}
           <div className="pricing-cards">
 
-            {/* ── Paket Dasar ── */}
-            <div className="price-card">
-              <div className="price-card-icon price-card-icon--gray">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M5 12.55a11 11 0 0 1 14.08 0" />
-                  <path d="M1.42 9a16 16 0 0 1 21.16 0" />
-                  <path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
-                  <circle cx="12" cy="20" r="1" fill="currentColor" stroke="none" />
-                </svg>
-              </div>
-              <h3 className="price-card-name">Paket Dasar</h3>
-              <p className="price-card-desc">Cocok untuk pengguna rumahan dengan kebutuhan internet ringan sehari-hari.</p>
-              <div className="price-card-price">
-                <span className="price-amount">{plans[0].price}</span>
-                <span className="price-unit">rb / bulan</span>
-              </div>
-              <a href="#footer" className="price-card-btn price-card-btn--outline">Pilih Paket Dasar</a>
-              <div className="price-features">
-                <p className="price-features-label">Yang sudah termasuk:</p>
-                {plans[0].features.map(f => (
-                  <div key={f} className="price-feature-row">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
-                    <span>{f}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
+            {isLoading ? (
+              <div className="text-center py-12 text-slate-500 w-full">Memuat paket WiFi...</div>
+            ) : packages.length === 0 ? (
+              <div className="text-center py-12 text-slate-500 w-full">Belum ada paket yang tersedia.</div>
+            ) : (
+              packages.map((pkg, idx) => {
+                const getIcon = (i: number) => {
+                   const icons = [
+                     <Wifi strokeWidth={2.5} className="w-5 h-5" />,
+                     <Rocket strokeWidth={2.5} className="w-5 h-5" />,
+                     <Zap strokeWidth={2.5} className="w-5 h-5" />,
+                     <Crown strokeWidth={2.5} className="w-5 h-5" />,
+                     <Shield strokeWidth={2.5} className="w-5 h-5" />
+                   ];
+                   return icons[i % icons.length];
+                };
+                
+                const getColors = (i: number) => {
+                   const colors = [
+                     'text-blue-600 bg-blue-50 border border-blue-100',
+                     'text-emerald-600 bg-emerald-50 border border-emerald-100',
+                     'text-orange-600 bg-orange-50 border border-orange-100',
+                     'text-purple-600 bg-purple-50 border border-purple-100',
+                     'text-rose-600 bg-rose-50 border border-rose-100'
+                   ];
+                   return colors[i % colors.length];
+                };
 
-            {/* ── Paket Standar ── */}
-            <div className="price-card">
-              <div className="price-card-icon price-card-icon--gray">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-                </svg>
-              </div>
-              <h3 className="price-card-name">Paket Standar</h3>
-              <p className="price-card-desc">Ideal untuk keluarga aktif yang streaming, gaming, dan bekerja dari rumah.</p>
-              <div className="price-card-price">
-                <span className="price-amount">{plans[1].price}</span>
-                <span className="price-unit">rb / bulan</span>
-              </div>
-              <a href="#footer" className="price-card-btn price-card-btn--outline">Pilih Paket Standar</a>
-              <div className="price-features">
-                <p className="price-features-label">Yang sudah termasuk:</p>
-                {plans[1].features.map(f => (
-                  <div key={f} className="price-feature-row">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
-                    <span>{f}</span>
+                return (
+                <div key={pkg.id} className="price-card">
+                  <div className={`price-card-icon ${getColors(idx)}`} style={{ marginBottom: '36px' }}>
+                    {getIcon(idx)}
                   </div>
-                ))}
-              </div>
-            </div>
-
-            {/* ── Paket Unggulan ── */}
-            <div className="price-card">
-              <div className="price-card-icon price-card-icon--gray">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="8" r="6" />
-                  <path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11" />
-                </svg>
-              </div>
-              <h3 className="price-card-name">Paket Unggulan</h3>
-              <p className="price-card-desc">Untuk bisnis dan pengguna profesional yang membutuhkan kecepatan maksimum.</p>
-              <div className="price-card-price">
-                <span className="price-amount">{plans[2].price}</span>
-                <span className="price-unit">rb / bulan</span>
-              </div>
-              <a href="#footer" className="price-card-btn price-card-btn--outline">Pilih Paket Unggulan</a>
-              <div className="price-features">
-                <p className="price-features-label">Yang sudah termasuk:</p>
-                {plans[2].features.map(f => (
-                  <div key={f} className="price-feature-row">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
-                    <span>{f}</span>
+                  <h3 className="price-card-name">{pkg.nama}</h3>
+                  <p className="price-card-desc">{pkg.deskripsi}</p>
+                  <div className="price-card-price">
+                    <span className="price-amount">{pkg.harga.toLocaleString('id-ID')}</span>
+                    <span className="price-unit">/ bulan</span>
                   </div>
-                ))}
-              </div>
-            </div>
+                  <Link to="/register" className="price-card-btn price-card-btn--outline">Pilih Paket</Link>
+                  <div className="price-features">
+                    <p className="price-features-label">Keunggulan:</p>
+                    <div className="price-feature-row">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                      <span>Kecepatan stabil {pkg.kecepatan} Mbps</span>
+                    </div>
+                    <div className="price-feature-row">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                      <span>Unlimited Tanpa FUP</span>
+                    </div>
+                    <div className="price-feature-row">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                      <span>Support Teknisi</span>
+                    </div>
+                  </div>
+                </div>
+              )})
+            )}
 
           </div>
         </div>
@@ -829,8 +804,13 @@ export function HomePage() {
 
         <div className="testimonials-marquee-wrapper">
           <div className="testimonials-track track-1">
-            {[...testimonials, ...testimonials].map((t, i) => (
+            {[...allTestimonials, ...allTestimonials].map((t, i) => (
               <div key={`t1-${i}`} className="testimonial-card">
+                <div className="flex gap-1 mb-3">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Star key={i} className={`w-4 h-4 ${i < t.rating ? "fill-amber-400 text-amber-400" : "text-slate-200"}`} />
+                  ))}
+                </div>
                 <p className="testimonial-quote">"{t.quote}"</p>
                 <div className="testimonial-author">
                   <div className="testimonial-author-info">
@@ -844,8 +824,13 @@ export function HomePage() {
           </div>
 
           <div className="testimonials-track track-2">
-            {[...testimonials.slice(3), ...testimonials.slice(0, 3), ...testimonials.slice(3), ...testimonials.slice(0, 3)].map((t, i) => (
+            {[...allTestimonials.slice(3), ...allTestimonials.slice(0, 3), ...allTestimonials.slice(3), ...allTestimonials.slice(0, 3)].map((t, i) => (
               <div key={`t2-${i}`} className="testimonial-card">
+                <div className="flex gap-1 mb-3">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Star key={i} className={`w-4 h-4 ${i < t.rating ? "fill-amber-400 text-amber-400" : "text-slate-200"}`} />
+                  ))}
+                </div>
                 <p className="testimonial-quote">"{t.quote}"</p>
                 <div className="testimonial-author">
                   <div className="testimonial-author-info">

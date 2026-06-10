@@ -19,6 +19,18 @@ class SettingController extends Controller
         ]);
     }
 
+    public function publicIndex()
+    {
+        // Only return specific public settings
+        $publicKeys = ['midtrans_client_key', 'midtrans_is_production'];
+        $settings = Setting::whereIn('key', $publicKeys)->pluck('value', 'key');
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $settings
+        ]);
+    }
+
     public function update(Request $request)
     {
         $request->validate([

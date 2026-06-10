@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Billing;
 use App\Models\Order;
 use Illuminate\Http\Request;
+use App\Services\WhatsAppService;
 
 class BillingController extends Controller
 {
@@ -44,6 +45,14 @@ class BillingController extends Controller
             'tanggal_bayar' => $request->status === 'paid' ? now() : null,
         ]);
 
+        $billing->load('order.user');
+        
+        try {
+            WhatsAppService::sendBillingNotification($billing->order->user, $billing);
+        } catch (\Exception $e) {
+            \Log::error('Gagal kirim WA billing created: ' . $e->getMessage());
+        }
+
         return response()->json($billing, 201);
     }
 
@@ -54,6 +63,14 @@ class BillingController extends Controller
             'status' => 'paid',
             'tanggal_bayar' => now(),
         ]);
+
+        $billing->load('order.user');
+
+        try {
+            WhatsAppService::sendBillingNotification($billing->order->user, $billing);
+        } catch (\Exception $e) {
+            \Log::error('Gagal kirim WA markAsPaid: ' . $e->getMessage());
+        }
 
         return response()->json(['message' => 'Tagihan berhasil ditandai lunas', 'billing' => $billing]);
     }

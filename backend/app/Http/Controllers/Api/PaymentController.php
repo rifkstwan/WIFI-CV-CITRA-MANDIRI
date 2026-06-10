@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\Billing;
+use App\Models\Setting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
@@ -12,9 +13,13 @@ class PaymentController extends Controller
 {
     public function __construct()
     {
+        $serverKey = Setting::where('key', 'midtrans_server_key')->first()->value ?? env('MIDTRANS_SERVER_KEY');
+        $isProductionStr = Setting::where('key', 'midtrans_is_production')->first()->value ?? env('MIDTRANS_IS_PRODUCTION', false);
+        $isProduction = filter_var($isProductionStr, FILTER_VALIDATE_BOOLEAN);
+
         // Set konfigurasi midtrans
-        \Midtrans\Config::$serverKey = env('MIDTRANS_SERVER_KEY');
-        \Midtrans\Config::$isProduction = env('MIDTRANS_IS_PRODUCTION', false);
+        \Midtrans\Config::$serverKey = $serverKey;
+        \Midtrans\Config::$isProduction = $isProduction;
         \Midtrans\Config::$isSanitized = true;
         \Midtrans\Config::$is3ds = true;
     }

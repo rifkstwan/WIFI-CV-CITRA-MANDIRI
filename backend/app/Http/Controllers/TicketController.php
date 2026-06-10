@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Ticket;
 use Illuminate\Http\Request;
+use App\Services\WhatsAppService;
 
 class TicketController extends Controller
 {
@@ -67,6 +68,14 @@ class TicketController extends Controller
         $ticket->status = $request->status;
         $ticket->save();
 
+        $ticket->load('user');
+
+        try {
+            WhatsAppService::sendTicketUpdateNotification($ticket->user, $ticket);
+        } catch (\Exception $e) {
+            \Log::error('Gagal kirim WA ticket update: ' . $e->getMessage());
+        }
+
         return response()->json(['message' => 'Status tiket berhasil diubah', 'ticket' => $ticket]);
     }
 
@@ -88,6 +97,14 @@ class TicketController extends Controller
 
         $ticket->status = $request->status;
         $ticket->save();
+
+        $ticket->load('user');
+
+        try {
+            WhatsAppService::sendTicketUpdateNotification($ticket->user, $ticket);
+        } catch (\Exception $e) {
+            \Log::error('Gagal kirim WA ticket photo update: ' . $e->getMessage());
+        }
 
         return response()->json(['message' => 'Bukti foto berhasil diunggah', 'ticket' => $ticket]);
     }

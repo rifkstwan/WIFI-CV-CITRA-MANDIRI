@@ -13,6 +13,8 @@ use App\Http\Controllers\TechnicianScheduleController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\SearchController;
+use App\Http\Controllers\NetworkDeviceController;
+use App\Http\Controllers\TechnicianAccountController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes
@@ -21,6 +23,14 @@ Route::post('/login',      [AuthController::class, 'login']);
 Route::get('/pakets',      [PaketController::class, 'index']);
 Route::get('/pakets/{id}', [PaketController::class, 'show']);
 Route::post('/midtrans/webhook', [PaymentController::class, 'webhook']);
+Route::get('/testimonials/public', [App\Http\Controllers\Api\TestimonialController::class, 'publicIndex']);
+Route::get('/settings/public', [App\Http\Controllers\Api\SettingController::class, 'publicIndex']);
+
+// Network Devices Routes
+Route::get('/network-devices/status', [NetworkDeviceController::class, 'status']);
+Route::apiResource('network-devices', NetworkDeviceController::class);
+
+Route::apiResource('technician-accounts', TechnicianAccountController::class);
 
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {
@@ -58,6 +68,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/notifications', [NotificationController::class, 'index']);
     Route::patch('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
 
+    // Testimonials
+    Route::get('/testimonials/my', [App\Http\Controllers\Api\TestimonialController::class, 'myTestimonial']);
+    Route::post('/testimonials', [App\Http\Controllers\Api\TestimonialController::class, 'store']);
+
     // Admin + Owner
     Route::middleware('role:admin|owner')->group(function () {
         // Tiket Gangguan
@@ -91,6 +105,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/customers/{id}', [CustomerController::class, 'update']);
         Route::delete('/customers/{id}', [CustomerController::class, 'destroy']);
         Route::patch('/customers/{id}/status', [CustomerController::class, 'updateStatus']);
+
+        // Testimonials
+        Route::get('/admin/testimonials', [App\Http\Controllers\Api\TestimonialController::class, 'indexAdmin']);
+        Route::patch('/admin/testimonials/{id}/status', [App\Http\Controllers\Api\TestimonialController::class, 'updateStatus']);
+        Route::delete('/admin/testimonials/{id}', [App\Http\Controllers\Api\TestimonialController::class, 'destroy']);
 
         // Settings
         Route::get('/settings', [App\Http\Controllers\Api\SettingController::class, 'index']);

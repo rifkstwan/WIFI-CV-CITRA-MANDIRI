@@ -10,6 +10,7 @@ export function RegisterPage() {
   const navigate = useNavigate()
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
+  const [phone, setPhone] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState("")
@@ -20,7 +21,7 @@ export function RegisterPage() {
     setError("")
     setLoading(true)
     try {
-      await register(name, email, password)
+      await register(name, email, phone, password)
       navigate("/dashboard")
     } catch (err: any) {
       setError(err.response?.data?.message || "Registrasi gagal")
@@ -110,6 +111,18 @@ export function RegisterPage() {
                 placeholder="email@contoh.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="input-filled-wrapper">
+              <label htmlFor="phone">Nomor WhatsApp</label>
+              <input
+                id="phone"
+                type="text"
+                placeholder="Misal: 081234567890"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
                 required
               />
             </div>
