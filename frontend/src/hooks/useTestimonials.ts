@@ -40,7 +40,8 @@ export function useMyTestimonial() {
     queryKey: ["my-testimonial"],
     queryFn: async () => {
       const res = await api.get("/testimonials/my")
-      return res.data || null
+      if (!res.data || Object.keys(res.data).length === 0) return null
+      return res.data
     },
   })
 }
