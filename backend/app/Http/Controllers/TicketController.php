@@ -50,6 +50,27 @@ class TicketController extends Controller
         return response()->json($ticket, 201);
     }
 
+    public function storeAdmin(Request $request)
+    {
+        $request->validate([
+            'user_id' => 'required|exists:users,id',
+            'judul' => 'required|string|max:255',
+            'deskripsi' => 'required|string',
+            'prioritas' => 'in:rendah,sedang,tinggi'
+        ]);
+
+        $ticket = Ticket::create([
+            'user_id' => $request->user_id,
+            'judul' => $request->judul,
+            'deskripsi' => $request->deskripsi,
+            'prioritas' => $request->prioritas ?? 'tinggi',
+            'status' => 'menunggu',
+            'foto' => null
+        ]);
+
+        return response()->json($ticket, 201);
+    }
+
     public function indexAdmin()
     {
         $tickets = Ticket::with('user')
@@ -76,6 +97,19 @@ class TicketController extends Controller
         $ticket->save();
 
         $ticket->load('user');
+
+        // AUTO-FIX DEMO: If marked as selesai, automatically change device IP from .99 to .1
+        if ($request->status === 'selesai' && $ticket->user) {
+            $devices = \App\Models\NetworkDevice::all();
+            foreach ($devices as $device) {
+                if (str_contains(strtolower($device->name), strtolower($ticket->user->name))) {
+                    if (str_ends_with($device->ip_address, '.99')) {
+                        $device->ip_address = str_replace('.99', '.1', $device->ip_address);
+                        $device->save();
+                    }
+                }
+            }
+        }
 
         Notification::create([
             'user_id' => $ticket->user_id,
@@ -113,6 +147,19 @@ class TicketController extends Controller
         $ticket->save();
 
         $ticket->load('user');
+
+        // AUTO-FIX DEMO: If marked as selesai, automatically change device IP from .99 to .1
+        if ($request->status === 'selesai' && $ticket->user) {
+            $devices = \App\Models\NetworkDevice::all();
+            foreach ($devices as $device) {
+                if (str_contains(strtolower($device->name), strtolower($ticket->user->name))) {
+                    if (str_ends_with($device->ip_address, '.99')) {
+                        $device->ip_address = str_replace('.99', '.1', $device->ip_address);
+                        $device->save();
+                    }
+                }
+            }
+        }
 
         try {
             WhatsAppService::sendTicketUpdateNotification($ticket->user, $ticket);

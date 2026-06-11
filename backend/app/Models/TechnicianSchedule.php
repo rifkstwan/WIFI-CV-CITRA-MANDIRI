@@ -12,6 +12,7 @@ class TechnicianSchedule extends Model
     protected $fillable = [
         'user_id',
         'ticket_id',
+        'order_id',
         'nama_teknisi',
         'tanggal_kunjungan',
         'status',
@@ -25,5 +26,10 @@ class TechnicianSchedule extends Model
     public function ticket()
     {
         return $this->belongsTo(Ticket::class);
+    }
+
+    public function order()
+    {
+        return $this->belongsTo(Order::class);
     }
 }

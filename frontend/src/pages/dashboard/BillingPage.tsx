@@ -40,7 +40,12 @@ export function BillingPage() {
 
       // @ts-ignore
       window.snap.pay(snapToken, {
-        onSuccess: function () {
+        onSuccess: async function () {
+          try {
+            await api.post(`/billings/${billingId}/demo-pay-success`)
+          } catch (e) {
+            console.error(e)
+          }
           alert("Pembayaran berhasil!");
           refetch();
         },

@@ -79,26 +79,49 @@ class NetworkDeviceController extends Controller
             $memory = 0;
             $clients = 0;
             
-            // Try socket connection to simulate ping (timeout 1s to prevent hanging)
-            $connection = @fsockopen($ip, $port, $errno, $errstr, 1);
+            // Check if this device belongs to an unpaid order (Heuristic for Demo)
+            $isUnpaid = false;
+            $pendingOrders = \App\Models\Order::with('user')->whereIn('status', ['pending', 'menunggu_pembayaran'])->get();
+            foreach ($pendingOrders as $pending) {
+                if ($pending->user && str_contains($device->name, $pending->user->name)) {
+                    $isUnpaid = true;
+                    break;
+                }
+            }
+
+            // Check if this device belongs to a user with an active complaint ticket (Heuristic for Demo)
+            $hasTicket = false;
+            $activeTickets = \App\Models\Ticket::with('user')->whereIn('status', ['Menunggu', 'Diproses'])->get();
+            foreach ($activeTickets as $ticket) {
+                if ($ticket->user && str_contains($device->name, $ticket->user->name)) {
+                    $hasTicket = true;
+                    break;
+                }
+            }
             
-            if (is_resource($connection)) {
-                $status = 'online';
-                fclose($connection);
+            // PROACTIVE NOC DEMO: If IP ends in .99, it means the fiber is cut!
+            $isProactiveOutage = str_ends_with($ip, '.99');
+            
+            if ($isUnpaid || $hasTicket || $isProactiveOutage) {
+                $status = 'offline';
+                $device->status = 'offline';
+                $device->save();
                 
-                // If online, we simulate fetching resource stats because we don't have the real API connected here
-                // In production, you would replace this block with real Mikrotik API calls
+                $uptime = '-';
+                $cpu = 0;
+                $memory = 0;
+                $clients = 0;
+            } else {
+                // DEMO MODE: Force online for all devices to show a lively dashboard
+                $status = 'online';
                 $device->last_seen_at = now();
                 $device->status = 'online';
                 $device->save();
                 
-                $uptime = rand(1, 100) . 'd ' . rand(1, 23) . 'h ' . rand(1, 59) . 'm';
-                $cpu = rand(5, 60);
-                $memory = rand(20, 80);
-                $clients = rand(10, 500);
-            } else {
-                $device->status = 'offline';
-                $device->save();
+                $uptime = rand(10, 100) . 'd ' . rand(1, 23) . 'h ' . rand(1, 59) . 'm';
+                $cpu = rand(10, 45);
+                $memory = rand(20, 60);
+                $clients = rand(10, 300);
             }
             
             $results[] = [

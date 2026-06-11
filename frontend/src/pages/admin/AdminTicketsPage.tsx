@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { Search, Clock, Wrench, CheckCircle2, AlertTriangle, AlertCircle, Info, Ticket as TicketIcon } from "lucide-react"
+import { Search, Clock, Wrench, CheckCircle2, AlertTriangle, AlertCircle, Info, Ticket as TicketIcon, Plus, X } from "lucide-react"
 import api from "../../services/api"
 
 type Ticket = {
@@ -35,6 +35,18 @@ export function AdminTicketsPage() {
   const [filterStatus, setFilterStatus] = useState<string>("semua")
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
 
+  const [isProactiveModalOpen, setIsProactiveModalOpen] = useState(false)
+  const [proactiveData, setProactiveData] = useState({ user_id: "", judul: "Deteksi Otomatis NOC: Router Offline", deskripsi: "Sistem mendeteksi bahwa koneksi pada router pelanggan terputus (Offline). Mohon segera tindak lanjuti." })
+
+  const { data: users = [] } = useQuery({
+    queryKey: ["admin-users-list"],
+    queryFn: async () => {
+      const res = await api.get("/admin/users")
+      // Filter for customers. `roles` is an array of strings.
+      return res.data.filter((u: any) => u.roles.includes('customer'))
+    },
+  })
+
   const { data: tickets = [], isLoading } = useQuery<Ticket[]>({
     queryKey: ["admin-tickets"],
     queryFn: async () => {
@@ -52,6 +64,24 @@ export function AdminTicketsPage() {
       queryClient.invalidateQueries({ queryKey: ["admin-tickets"] })
     },
   })
+
+  const createProactiveTicket = useMutation({
+    mutationFn: async (data: any) => {
+      const res = await api.post(`/admin/tickets`, data)
+      return res.data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-tickets"] })
+      setIsProactiveModalOpen(false)
+      setProactiveData({ user_id: "", judul: "Deteksi Otomatis NOC: Router Offline", deskripsi: "Sistem mendeteksi bahwa koneksi pada router pelanggan terputus (Offline). Mohon segera tindak lanjuti." })
+    },
+  })
+
+  const handleCreateProactive = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!proactiveData.user_id) return
+    createProactiveTicket.mutate({ ...proactiveData, prioritas: 'tinggi' })
+  }
 
   const filteredTickets = tickets.filter(t => {
     const matchesSearch = 
@@ -72,6 +102,12 @@ export function AdminTicketsPage() {
           <h1 className="text-2xl font-bold text-slate-900">Manajemen Tiket Gangguan</h1>
           <p className="text-sm text-slate-500 mt-1">Pantau dan tindak lanjuti laporan kendala dari pelanggan.</p>
         </div>
+        <button 
+          onClick={() => setIsProactiveModalOpen(true)}
+          className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-lg shadow-indigo-600/20 transition-all flex items-center gap-2"
+        >
+          <Plus className="w-5 h-5" /> Buat Tiket Proaktif
+        </button>
       </div>
 
       {/* Filters */}
@@ -191,7 +227,7 @@ export function AdminTicketsPage() {
         </div>
       )}
 
-      {/* Image Modal */}
+    {/* Image Modal */}
       {selectedImage && (
         <div 
           className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4"
@@ -202,6 +238,68 @@ export function AdminTicketsPage() {
             <div className="absolute top-4 right-4 bg-black/50 text-white px-3 py-1.5 rounded-lg text-sm font-bold backdrop-blur-md cursor-pointer hover:bg-black/70">
               Tutup (Klik Area Gelap)
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Proactive Ticket Modal */}
+      {isProactiveModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-lg rounded-3xl shadow-xl overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="p-6 border-b border-slate-100 flex justify-between items-center">
+              <div>
+                <h2 className="text-xl font-bold text-slate-800">Buat Tiket Proaktif</h2>
+                <p className="text-xs text-slate-500 mt-1">Buatkan tiket keluhan atas nama pelanggan.</p>
+              </div>
+              <button onClick={() => setIsProactiveModalOpen(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <form onSubmit={handleCreateProactive} className="p-6 space-y-5">
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-1.5">Pelanggan yang Mengalami Gangguan</label>
+                <select
+                  required
+                  value={proactiveData.user_id}
+                  onChange={e => setProactiveData({ ...proactiveData, user_id: e.target.value })}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                >
+                  <option value="">-- Pilih Pelanggan --</option>
+                  {users.map((u: any) => (
+                    <option key={u.id} value={u.id}>{u.name} ({u.email})</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-1.5">Judul Tiket</label>
+                <input
+                  required
+                  type="text"
+                  value={proactiveData.judul}
+                  onChange={e => setProactiveData({ ...proactiveData, judul: e.target.value })}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-1.5">Deskripsi Lengkap</label>
+                <textarea
+                  required
+                  value={proactiveData.deskripsi}
+                  onChange={e => setProactiveData({ ...proactiveData, deskripsi: e.target.value })}
+                  rows={3}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all resize-none"
+                />
+              </div>
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  disabled={createProactiveTicket.isPending}
+                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition-colors shadow-lg shadow-indigo-600/20 disabled:opacity-50"
+                >
+                  {createProactiveTicket.isPending ? "Menyimpan..." : "Buat Tiket (Prioritas Tinggi)"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

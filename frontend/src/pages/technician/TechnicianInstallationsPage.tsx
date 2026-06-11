@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { Navigation, MapPin, Package, CheckCircle2, Clock, Wrench } from "lucide-react"
+import { Navigation, MapPin, Package, CheckCircle2, Clock, Wrench, X, Loader2 } from "lucide-react"
 import api from "../../services/api"
 
 export function TechnicianInstallationsPage() {
@@ -9,7 +9,7 @@ export function TechnicianInstallationsPage() {
   const { data: installations = [], isLoading } = useQuery({
     queryKey: ["technician-installations"],
     queryFn: async () => {
-      const res = await api.get("/technician/installations")
+      const res = await api.get(`/technician/installations?t=${new Date().getTime()}`)
       return res.data
     },
     refetchInterval: 5000,
@@ -25,9 +25,54 @@ export function TechnicianInstallationsPage() {
     },
   })
 
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [selectedInst, setSelectedInst] = useState<any>(null)
+  const [formData, setFormData] = useState({
+    name: '',
+    type: 'Router',
+    ip_address: '',
+    username: '',
+    password: '',
+    api_port: '8728'
+  })
+
+  const addDeviceMutation = useMutation({
+    mutationFn: async (data: any) => {
+      return await api.post('/network-devices', data)
+    },
+    onSuccess: () => {
+      if (selectedInst) {
+         updateStatus.mutate({ id: selectedInst.schedule_id, status: 'selesai' })
+      }
+      setIsModalOpen(false)
+      setSelectedInst(null)
+      setFormData({ name: '', type: 'Router', ip_address: '', username: '', password: '', api_port: '8728' })
+    },
+    onError: (err) => {
+      console.error("Failed to add device", err)
+      alert("Gagal menyimpan konfigurasi router. Pastikan IP valid.")
+    }
+  })
+
+  const handleFinish = (inst: any) => {
+    setSelectedInst(inst)
+    setFormData({
+      ...formData,
+      name: `Router ${inst.user.name}`,
+    })
+    setIsModalOpen(true)
+  }
+
+  const handleSubmitRouter = (e: React.FormEvent) => {
+    e.preventDefault()
+    addDeviceMutation.mutate(formData)
+  }
+
   // Teknisi melihat pesanan yang sudah dibayar ('aktif') untuk dilakukan instalasi
   // Setelah instalasi selesai, teknisi akan merubah statusnya menjadi 'selesai'
   const activeInstallations = installations.filter((inst: any) => inst.status === "aktif")
+  console.log("ALL INSTALLATIONS FETCHED:", installations);
+  console.log("ACTIVE INSTALLATIONS AFTER FILTER:", activeInstallations);
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
@@ -83,7 +128,7 @@ export function TechnicianInstallationsPage() {
                      <MapPin className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
                      <div>
                        <p className="font-bold text-slate-700 text-xs mb-1">Alamat Pemasangan</p>
-                       <p className="leading-relaxed">{inst.alamat_pemasangan}</p>
+                       <p className="leading-relaxed">{inst.alamat}</p>
                      </div>
                    </div>
                 </div>
@@ -91,7 +136,7 @@ export function TechnicianInstallationsPage() {
                 <div className="flex gap-2 mb-4">
                   <button 
                     onClick={() => {
-                      const query = encodeURIComponent(inst.alamat_pemasangan)
+                      const query = encodeURIComponent(inst.alamat)
                       window.open(`https://www.google.com/maps/search/?api=1&query=${query}`, '_blank')
                     }}
                     className="flex-1 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 py-2.5 rounded-xl flex items-center justify-center gap-2 font-bold text-xs transition-colors"
@@ -104,15 +149,10 @@ export function TechnicianInstallationsPage() {
                   </button>
                 </div>
 
-                {/* Status Action */}
                 <div className="mt-auto pt-4 border-t border-slate-100">
                   <button
-                    onClick={() => {
-                      if (window.confirm("Tandai instalasi ini telah selesai dan internet aktif?")) {
-                         updateStatus.mutate({ id: inst.id, status: 'selesai' })
-                      }
-                    }}
-                    disabled={updateStatus.isPending}
+                    onClick={() => handleFinish(inst)}
+                    disabled={updateStatus.isPending || addDeviceMutation.isPending}
                     className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3.5 rounded-xl flex items-center justify-center gap-2 font-bold text-sm transition-colors shadow-lg shadow-blue-500/20"
                   >
                     <Wrench className="w-4 h-4" /> Tandai Selesai Terpasang
@@ -121,6 +161,97 @@ export function TechnicianInstallationsPage() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Router Configuration Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
+            <div className="flex justify-between items-center p-5 border-b border-slate-100">
+              <div>
+                 <h2 className="text-lg font-bold text-slate-800">Konfigurasi Router Baru</h2>
+                 <p className="text-xs text-slate-500 mt-1">Selesaikan instalasi dengan menghubungkan router ke sistem monitoring.</p>
+              </div>
+              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600 bg-slate-50 hover:bg-slate-100 p-2 rounded-full transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <form onSubmit={handleSubmitRouter} className="p-5 space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">Nama Perangkat</label>
+                <input 
+                  type="text" 
+                  value={formData.name}
+                  onChange={(e) => setFormData({...formData, name: e.target.value})}
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                  required
+                />
+              </div>
+              
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">IP Address Router</label>
+                <input 
+                  type="text" 
+                  value={formData.ip_address}
+                  onChange={(e) => setFormData({...formData, ip_address: e.target.value})}
+                  placeholder="Contoh: 192.168.1.1"
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all font-mono text-sm"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                 <div>
+                   <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">Username Mikrotik</label>
+                   <input 
+                     type="text" 
+                     value={formData.username}
+                     onChange={(e) => setFormData({...formData, username: e.target.value})}
+                     className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                   />
+                 </div>
+                 <div>
+                   <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">Password Mikrotik</label>
+                   <input 
+                     type="password" 
+                     value={formData.password}
+                     onChange={(e) => setFormData({...formData, password: e.target.value})}
+                     className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                   />
+                 </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">API Port</label>
+                <input 
+                  type="text" 
+                  value={formData.api_port}
+                  onChange={(e) => setFormData({...formData, api_port: e.target.value})}
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                />
+              </div>
+
+              <div className="pt-4 border-t border-slate-100 flex justify-end gap-3">
+                <button 
+                  type="button" 
+                  onClick={() => setIsModalOpen(false)}
+                  className="px-5 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl font-bold text-sm hover:bg-slate-50 transition-colors"
+                >
+                  Batal
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={addDeviceMutation.isPending}
+                  className="px-5 py-2.5 bg-blue-600 text-white rounded-xl font-bold text-sm hover:bg-blue-700 transition-colors flex items-center gap-2"
+                >
+                  {addDeviceMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                  Simpan & Selesaikan Tugas
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

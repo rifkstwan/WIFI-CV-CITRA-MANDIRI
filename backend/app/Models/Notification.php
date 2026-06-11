@@ -28,7 +28,7 @@ class Notification extends Model
 
     public static function notifyAdmins($title, $message, $type = 'system')
     {
-        $admins = User::where('role', 'admin')->get();
+        $admins = User::role('admin')->get();
         foreach ($admins as $admin) {
             self::create([
                 'user_id' => $admin->id,
@@ -41,8 +41,8 @@ class Notification extends Model
 
     public static function notifyTechnician($technicianName, $title, $message, $type = 'ticket')
     {
-        // Find technician by name
-        $technician = User::where('role', 'teknisi')->where('name', $technicianName)->first();
+        // Find technician by name using Spatie permission scope
+        $technician = User::role('teknisi')->where('name', $technicianName)->first();
         if ($technician) {
             self::create([
                 'user_id' => $technician->id,

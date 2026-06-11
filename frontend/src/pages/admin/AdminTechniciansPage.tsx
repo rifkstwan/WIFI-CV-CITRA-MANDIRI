@@ -1,13 +1,17 @@
 import { useState } from "react"
 import { Search, Calendar, User, Wrench, CheckCircle2, AlertTriangle, Plus, X, Trash2, Edit } from "lucide-react"
-import { useAdminSchedules, useCreateAdminSchedule, useUpdateAdminScheduleStatus } from "../../hooks/useSchedules"
+import { useAdminSchedules, useCreateAdminSchedule, useUpdateAdminScheduleStatus, useDeleteAdminSchedule } from "../../hooks/useSchedules"
 import { useAdminTickets } from "../../hooks/useTickets"
 import { useTechnicianAccounts, useCreateTechnicianAccount, useDeleteTechnicianAccount, useUpdateTechnicianAccount, type TechnicianAccount } from "../../hooks/useTechnicianAccounts"
+import { useQuery } from "@tanstack/react-query"
+import api from "../../services/api"
 
 const statusConfig = {
-  Menunggu: { label: "Menunggu", color: "bg-amber-100 text-amber-700 border-amber-200" },
-  Selesai: { label: "Selesai", color: "bg-emerald-100 text-emerald-700 border-emerald-200" },
-  Dibatalkan: { label: "Dibatalkan", color: "bg-red-100 text-red-700 border-red-200" },
+  menunggu: { label: "Menunggu", color: "bg-amber-100 text-amber-700 border-amber-200" },
+  berangkat: { label: "Berangkat", color: "bg-blue-100 text-blue-700 border-blue-200" },
+  pengerjaan: { label: "Pengerjaan", color: "bg-purple-100 text-purple-700 border-purple-200" },
+  selesai: { label: "Selesai", color: "bg-emerald-100 text-emerald-700 border-emerald-200" },
+  dibatalkan: { label: "Dibatalkan", color: "bg-red-100 text-red-700 border-red-200" },
 }
 
 export function AdminTechniciansPage() {
@@ -29,21 +33,31 @@ export function AdminTechniciansPage() {
   const { data: schedules = [], isLoading: isLoadingSchedules } = useAdminSchedules()
   const { data: tickets = [] } = useAdminTickets()
   const { data: technicians = [], isLoading: isLoadingTechnicians } = useTechnicianAccounts()
+  const { data: orders = [] } = useQuery({
+    queryKey: ['admin-orders-for-schedule'],
+    queryFn: async () => {
+      const res = await api.get('/orders')
+      return res.data
+    }
+  })
 
   // Mutations
   const createSchedule = useCreateAdminSchedule()
   const updateStatus = useUpdateAdminScheduleStatus()
+  const deleteSchedule = useDeleteAdminSchedule()
   const createAccount = useCreateTechnicianAccount()
   const updateAccount = useUpdateTechnicianAccount()
   const deleteAccount = useDeleteTechnicianAccount()
 
-  // Ambil tiket yang statusnya masih 'menunggu' (belum ditugaskan)
+  // Ambil tiket & order yang belum diselesaikan
   const pendingTickets = tickets.filter(t => t.status === "menunggu")
+  const activeOrders = orders.filter((o: any) => o.status === "pending" || o.status === "aktif")
 
-  const filteredSchedules = schedules.filter(s => {
+  const filteredSchedules = schedules.filter((s: any) => {
     return s.nama_teknisi.toLowerCase().includes(scheduleSearchTerm.toLowerCase()) || 
            s.ticket?.user?.name.toLowerCase().includes(scheduleSearchTerm.toLowerCase()) ||
-           s.ticket?.judul.toLowerCase().includes(scheduleSearchTerm.toLowerCase())
+           s.ticket?.judul.toLowerCase().includes(scheduleSearchTerm.toLowerCase()) ||
+           s.order?.user?.name.toLowerCase().includes(scheduleSearchTerm.toLowerCase())
   })
 
   const filteredTechnicians = technicians.filter(t => {
@@ -51,20 +65,29 @@ export function AdminTechniciansPage() {
            t.email.toLowerCase().includes(accountSearchTerm.toLowerCase())
   })
 
-  const handleCreateSchedule = (e: React.FormEvent) => {
+  const handleCreateSchedule = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!newSchedule.ticket_id || !newSchedule.nama_teknisi || !newSchedule.tanggal_kunjungan) return
 
-    createSchedule.mutate({
-      ticket_id: parseInt(newSchedule.ticket_id),
+    let payload: any = {
       nama_teknisi: newSchedule.nama_teknisi,
       tanggal_kunjungan: newSchedule.tanggal_kunjungan
-    }, {
-      onSuccess: () => {
-        setIsScheduleModalOpen(false)
-        setNewSchedule({ ticket_id: "", nama_teknisi: "", tanggal_kunjungan: "" })
-      }
-    })
+    }
+    
+    if (newSchedule.ticket_id.startsWith('tkt-')) {
+      payload.ticket_id = parseInt(newSchedule.ticket_id.replace('tkt-', ''))
+    } else if (newSchedule.ticket_id.startsWith('ord-')) {
+      payload.order_id = parseInt(newSchedule.ticket_id.replace('ord-', ''))
+    }
+
+    try {
+      await createSchedule.mutateAsync(payload)
+      setIsScheduleModalOpen(false)
+      setNewSchedule({ ticket_id: "", nama_teknisi: "", tanggal_kunjungan: "" })
+    } catch (error: any) {
+      console.error("Gagal membuat jadwal:", error)
+      alert(error?.response?.data?.message || "Gagal membuat jadwal. Periksa form atau koneksi.")
+    }
   }
 
   const openAddAccountModal = () => {
@@ -206,8 +229,10 @@ export function AdminTechniciansPage() {
                           </div>
                         </td>
                         <td className="px-6 py-4">
-                          <div className="font-bold text-slate-800">{schedule.ticket?.user?.name || schedule.user?.name || 'Pelanggan'}</div>
-                          <div className="text-xs text-slate-500 mt-0.5 max-w-[250px] truncate">{schedule.ticket?.judul}</div>
+                          <div className="font-bold text-slate-800">{schedule.ticket?.user?.name || schedule.order?.user?.name || 'Pelanggan'}</div>
+                          <div className="text-xs text-slate-500 mt-0.5 max-w-[250px] truncate">
+                            {schedule.ticket ? `Perbaikan: ${schedule.ticket.judul}` : `Instalasi: ${schedule.order?.paket?.nama}`}
+                          </div>
                         </td>
                         <td className="px-6 py-4 font-medium">
                           {new Date(schedule.tanggal_kunjungan).toLocaleString('id-ID', {
@@ -220,24 +245,37 @@ export function AdminTechniciansPage() {
                           </span>
                         </td>
                         <td className="px-6 py-4 text-right">
-                          {schedule.status === 'Menunggu' && (
-                            <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <button
-                                onClick={() => updateStatus.mutate({ id: schedule.id, status: 'Selesai' })}
-                                className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
-                                title="Tandai Selesai"
-                              >
-                                <CheckCircle2 className="w-5 h-5" />
-                              </button>
-                              <button
-                                onClick={() => updateStatus.mutate({ id: schedule.id, status: 'Dibatalkan' })}
-                                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                title="Batalkan"
-                              >
-                                <AlertTriangle className="w-5 h-5" />
-                              </button>
-                            </div>
-                          )}
+                          <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            {schedule.status === 'menunggu' && (
+                              <>
+                                <button
+                                  onClick={() => updateStatus.mutate({ id: schedule.id, status: 'selesai' })}
+                                  className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                                  title="Tandai Selesai"
+                                >
+                                  <CheckCircle2 className="w-5 h-5" />
+                                </button>
+                                <button
+                                  onClick={() => updateStatus.mutate({ id: schedule.id, status: 'dibatalkan' })}
+                                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                  title="Batalkan"
+                                >
+                                  <AlertTriangle className="w-5 h-5" />
+                                </button>
+                              </>
+                            )}
+                            <button
+                              onClick={() => {
+                                if (window.confirm("Apakah Anda yakin ingin menghapus jadwal ini?")) {
+                                  deleteSchedule.mutate(schedule.id)
+                                }
+                              }}
+                              className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                              title="Hapus Jadwal"
+                            >
+                              <Trash2 className="w-5 h-5" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -352,21 +390,30 @@ export function AdminTechniciansPage() {
             </div>
             <form onSubmit={handleCreateSchedule} className="p-6 space-y-5">
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1.5">Pilih Keluhan Pelanggan (Menunggu)</label>
+                <label className="block text-sm font-bold text-slate-700 mb-1.5">Pilih Keluhan / Pemasangan Baru</label>
                 <select
                   required
                   value={newSchedule.ticket_id}
                   onChange={e => setNewSchedule({ ...newSchedule, ticket_id: e.target.value })}
                   className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
                 >
-                  <option value="">-- Pilih Tiket --</option>
-                  {pendingTickets.map(t => (
-                    <option key={t.id} value={t.id}>
-                      #{t.id} - {t.user?.name} - {t.judul}
-                    </option>
-                  ))}
+                  <option value="">-- Pilih Pekerjaan --</option>
+                  <optgroup label="Instalasi Baru (Pemasangan)">
+                    {activeOrders.map((o: any) => (
+                      <option key={`ord-${o.id}`} value={`ord-${o.id}`}>
+                        [Instalasi] {o.user?.name} - {o.paket?.nama} ({o.alamat})
+                      </option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="Tiket Gangguan (Perbaikan)">
+                    {pendingTickets.map((t: any) => (
+                      <option key={`tkt-${t.id}`} value={`tkt-${t.id}`}>
+                        [Gangguan] {t.user?.name} - {t.judul}
+                      </option>
+                    ))}
+                  </optgroup>
                 </select>
-                {pendingTickets.length === 0 && <p className="text-xs text-amber-600 mt-1">Tidak ada tiket dengan status 'menunggu'.</p>}
+                {pendingTickets.length === 0 && activeOrders.length === 0 && <p className="text-xs text-amber-600 mt-1">Tidak ada pekerjaan yang membutuhkan teknisi saat ini.</p>}
               </div>
               
               <div>

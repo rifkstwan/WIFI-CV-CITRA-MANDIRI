@@ -10,7 +10,7 @@ class TechnicianScheduleController extends Controller
 {
     public function mySchedules(Request $request)
     {
-        $schedules = TechnicianSchedule::with('ticket')
+        $schedules = TechnicianSchedule::with(['ticket', 'order', 'order.paket'])
             ->where('user_id', $request->user()->id)
             ->orderBy('tanggal_kunjungan', 'desc')
             ->get();
@@ -18,9 +18,33 @@ class TechnicianScheduleController extends Controller
         return response()->json($schedules);
     }
 
+    public function myInstallations(Request $request)
+    {
+        $technicianName = $request->user()->name;
+        
+        $schedules = TechnicianSchedule::with(['order', 'order.user', 'order.paket'])
+            ->where('nama_teknisi', $technicianName)
+            ->whereNotNull('order_id')
+            ->whereIn('status', ['menunggu', 'berangkat', 'pengerjaan'])
+            ->orderBy('tanggal_kunjungan', 'asc')
+            ->get();
+            
+        // Map to match the expected format for TechnicianInstallationsPage
+        $installations = $schedules->map(function ($schedule) {
+            $order = $schedule->order;
+            // Attach the schedule ID so the frontend can update the schedule status!
+            $order->schedule_id = $schedule->id; 
+            // We set status to aktif so the frontend activeInstallations filter passes
+            $order->status = 'aktif';
+            return $order;
+        });
+
+        return response()->json($installations);
+    }
+
     public function indexAdmin()
     {
-        $schedules = TechnicianSchedule::with(['user', 'ticket'])
+        $schedules = TechnicianSchedule::with(['user', 'ticket', 'order', 'order.user', 'order.paket'])
             ->orderBy('tanggal_kunjungan', 'desc')
             ->get();
             
@@ -30,35 +54,54 @@ class TechnicianScheduleController extends Controller
     public function storeAdmin(Request $request)
     {
         $request->validate([
-            'ticket_id' => 'required|exists:tickets,id',
+            'ticket_id' => 'nullable|exists:tickets,id',
+            'order_id' => 'nullable|exists:orders,id',
             'nama_teknisi' => 'required|string|max:255',
             'tanggal_kunjungan' => 'required|date',
         ]);
 
-        $ticket = \App\Models\Ticket::findOrFail($request->ticket_id);
+        if (!$request->ticket_id && !$request->order_id) {
+            return response()->json(['message' => 'Ticket ID atau Order ID harus diisi'], 422);
+        }
+
+        $userId = null;
+        $title = '';
+        $message = '';
+        
+        if ($request->ticket_id) {
+            $ticket = \App\Models\Ticket::findOrFail($request->ticket_id);
+            $userId = $ticket->user_id;
+            $ticket->update(['status' => 'Diproses']);
+            $title = 'Jadwal Kunjungan Teknisi (Perbaikan)';
+            $message = 'Teknisi ' . $request->nama_teknisi . ' telah dijadwalkan untuk kunjungan pada tanggal ' . \Carbon\Carbon::parse($request->tanggal_kunjungan)->format('d/m/Y') . ' terkait tiket gangguan Anda.';
+        } elseif ($request->order_id) {
+            $order = \App\Models\Order::findOrFail($request->order_id);
+            $userId = $order->user_id;
+            // Order is already active if paid, no status change needed here, just assign tech.
+            $title = 'Jadwal Kunjungan Teknisi (Pemasangan)';
+            $message = 'Teknisi ' . $request->nama_teknisi . ' telah dijadwalkan untuk kunjungan pada tanggal ' . \Carbon\Carbon::parse($request->tanggal_kunjungan)->format('d/m/Y') . ' untuk melakukan instalasi WiFi baru Anda.';
+        }
 
         $schedule = TechnicianSchedule::create([
-            'user_id' => $ticket->user_id,
-            'ticket_id' => $ticket->id,
+            'user_id' => $userId,
+            'ticket_id' => $request->ticket_id,
+            'order_id' => $request->order_id,
             'nama_teknisi' => $request->nama_teknisi,
             'tanggal_kunjungan' => $request->tanggal_kunjungan,
-            'status' => 'Menunggu',
+            'status' => 'menunggu',
         ]);
 
-        // Update ticket status to Diproses
-        $ticket->update(['status' => 'Diproses']);
-
         Notification::create([
-            'user_id' => $ticket->user_id,
-            'title' => 'Jadwal Kunjungan Teknisi',
-            'message' => 'Teknisi ' . $request->nama_teknisi . ' telah dijadwalkan untuk kunjungan pada tanggal ' . \Carbon\Carbon::parse($request->tanggal_kunjungan)->format('d/m/Y') . ' terkait tiket Anda.',
-            'type' => 'ticket_update',
+            'user_id' => $userId,
+            'title' => $title,
+            'message' => $message,
+            'type' => $request->ticket_id ? 'ticket_update' : 'order_update',
         ]);
 
         Notification::notifyTechnician(
             $request->nama_teknisi,
             'Tugas Kunjungan Baru',
-            'Anda dijadwalkan untuk kunjungan pada tanggal ' . \Carbon\Carbon::parse($request->tanggal_kunjungan)->format('d/m/Y') . ' untuk tiket #' . $ticket->id,
+            'Anda dijadwalkan untuk kunjungan pada tanggal ' . \Carbon\Carbon::parse($request->tanggal_kunjungan)->format('d/m/Y') . ' (' . ($request->ticket_id ? 'Tiket #'.$request->ticket_id : 'Order #'.$request->order_id) . ')',
             'ticket_update'
         );
 
@@ -68,7 +111,7 @@ class TechnicianScheduleController extends Controller
     public function updateStatus(Request $request, $id)
     {
         $request->validate([
-            'status' => 'required|in:Menunggu,Selesai,Dibatalkan',
+            'status' => 'required|in:menunggu,selesai,dibatalkan',
         ]);
 
         $schedule = TechnicianSchedule::findOrFail($id);
@@ -76,15 +119,31 @@ class TechnicianScheduleController extends Controller
             'status' => $request->status,
         ]);
 
-        // If schedule is finished, maybe update ticket? Not explicitly requested, but good practice.
-        if ($request->status === 'Selesai') {
-            $schedule->ticket->update(['status' => 'Selesai']);
+        // If schedule is finished, maybe update ticket?
+        if ($request->status === 'selesai' && $schedule->ticket) {
+            $schedule->ticket->update(['status' => 'selesai']);
+        }
+
+        // AUTO-FIX DEMO: If marked as selesai, automatically change device IP from .99 to .1
+        if ($request->status === 'selesai') {
+            $user = \App\Models\User::find($schedule->user_id);
+            if ($user) {
+                $devices = \App\Models\NetworkDevice::all();
+                foreach ($devices as $device) {
+                    if (str_contains(strtolower($device->name), strtolower($user->name))) {
+                        if (str_ends_with($device->ip_address, '.99')) {
+                            $device->ip_address = str_replace('.99', '.1', $device->ip_address);
+                            $device->save();
+                        }
+                    }
+                }
+            }
         }
 
         Notification::create([
             'user_id' => $schedule->user_id,
             'title' => 'Status Kunjungan Diperbarui',
-            'message' => 'Status kunjungan teknisi untuk tiket Anda telah diubah menjadi ' . strtoupper($request->status) . '.',
+            'message' => 'Status kunjungan teknisi untuk tiket/order Anda telah diubah menjadi ' . strtoupper($request->status) . '.',
             'type' => 'ticket_update',
         ]);
 

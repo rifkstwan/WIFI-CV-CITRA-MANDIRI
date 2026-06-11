@@ -68,12 +68,19 @@ export function UserDashboardPage() {
 
       // @ts-ignore
       window.snap.pay(snapToken, {
-        onSuccess: function () {
+        onSuccess: async function () {
+          try {
+            await api.post(`/orders/${orderId}/demo-pay-success`)
+          } catch (e) {
+            console.error(e)
+          }
           alert("Pembayaran berhasil!");
-          window.location.reload();
+          refetchOrders();
+          refetchTraffic();
         },
         onPending: function () {
           alert("Menunggu pembayaran Anda!");
+          refetchOrders();
         },
         onError: function () {
           alert("Pembayaran gagal!");
@@ -225,6 +232,54 @@ export function UserDashboardPage() {
                   <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Selesai</p>
                   <p className="text-[14px] font-bold text-teal-600 mt-0.5">{completedTicketsCount} Tiket</p>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Client Router Status Section */}
+          <div className="mt-6 bg-white rounded-2xl p-6 border border-slate-200/60 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)]">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-[15px] font-extrabold text-slate-800 flex items-center gap-2">
+                <Wifi className="w-5 h-5 text-blue-500" />
+                Status Perangkat (ONT/Router Pelanggan)
+              </h3>
+              {latestActiveOrder ? (
+                <span className="flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-600 text-xs font-bold rounded-full border border-emerald-100">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                  Online
+                </span>
+              ) : (
+                <span className="flex items-center gap-1.5 px-3 py-1 bg-red-50 text-red-600 text-xs font-bold rounded-full border border-red-100">
+                  <span className="w-2 h-2 rounded-full bg-red-500"></span>
+                  Offline
+                </span>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
+                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">IP Address</p>
+                <p className="text-sm font-bold text-slate-700 font-mono">
+                  {latestActiveOrder ? (latestActiveOrder.ip_address || "10.10." + Math.floor(Math.random() * 255) + "." + Math.floor(Math.random() * 255)) : "-"}
+                </p>
+              </div>
+              <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
+                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Uptime</p>
+                <p className="text-sm font-bold text-slate-700">
+                  {latestActiveOrder ? "14d 3h 22m" : "-"}
+                </p>
+              </div>
+              <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
+                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Kualitas Sinyal</p>
+                <p className="text-sm font-bold text-emerald-600">
+                  {latestActiveOrder ? "-18 dBm (Sangat Baik)" : "-"}
+                </p>
+              </div>
+              <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
+                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Tipe Perangkat</p>
+                <p className="text-sm font-bold text-slate-700">
+                  {latestActiveOrder?.tipe_perangkat || "FiberHome HG6243C"}
+                </p>
               </div>
             </div>
           </div>

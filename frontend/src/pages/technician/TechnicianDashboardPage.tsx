@@ -8,7 +8,7 @@ export function TechnicianDashboardPage() {
   const { data: dashboardData, isLoading: isLoadingStats } = useQuery({
     queryKey: ["technician-dashboard-stats"],
     queryFn: async () => {
-      const res = await api.get("/technician/dashboard")
+      const res = await api.get(`/technician/dashboard?t=${new Date().getTime()}`)
       return res.data
     },
     refetchInterval: 5000, // Auto refresh every 5 seconds

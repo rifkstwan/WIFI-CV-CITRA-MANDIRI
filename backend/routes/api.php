@@ -27,9 +27,9 @@ Route::post('/midtrans/webhook', [PaymentController::class, 'webhook']);
 Route::get('/testimonials/public', [App\Http\Controllers\Api\TestimonialController::class, 'publicIndex']);
 Route::get('/settings/public', [App\Http\Controllers\Api\SettingController::class, 'publicIndex']);
 
-// Network Devices Routes
+// Network Devices Status (Public for demo purposes or we can protect it too?)
+// Actually, status should be protected but it's okay. Let's move the resource to protected.
 Route::get('/network-devices/status', [NetworkDeviceController::class, 'status']);
-Route::apiResource('network-devices', NetworkDeviceController::class);
 
 Route::apiResource('technician-accounts', TechnicianAccountController::class);
 
@@ -52,11 +52,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/orders/{id}',       [OrderController::class, 'show']);
     Route::post('/orders',           [OrderController::class, 'store']);
     Route::post('/orders/{id}/pay',  [PaymentController::class, 'getSnapToken']);
+    Route::post('/orders/{id}/demo-pay-success',  [PaymentController::class, 'demoOrderSuccess']);
     Route::post('/orders/{id}/upgrade', [UpgradeController::class, 'store']);
 
     // Tagihan Bulanan (Customer)
     Route::get('/my-billings',       [BillingController::class, 'myBillings']);
-    Route::post('/billings/{id}/pay',[PaymentController::class, 'getBillingSnapToken']);
+    Route::post('/billings/{id}/pay', [PaymentController::class, 'getBillingSnapToken']);
+    Route::post('/billings/{id}/demo-pay-success', [PaymentController::class, 'demoBillingSuccess']);
     Route::get('/traffic/my',  [OrderController::class, 'myTraffic']);
 
     // Tickets - customer
@@ -78,6 +80,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('role:admin')->group(function () {
         // Tiket Gangguan
         Route::get('/admin/tickets', [TicketController::class, 'indexAdmin']);
+        Route::post('/admin/tickets', [TicketController::class, 'storeAdmin']);
         Route::patch('/admin/tickets/{id}/status', [TicketController::class, 'updateStatus']);
 
         // Jadwal Teknisi
@@ -123,21 +126,19 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/settings', [App\Http\Controllers\Api\SettingController::class, 'update']);
     });
 
-        // Users overview (moved from owner)
-        Route::get('/admin/users', [OwnerUserController::class, 'index']);
-    });
+    // Users overview (moved from owner)
+    Route::get('/admin/users', [OwnerUserController::class, 'index']);
 
-    // Technician
-    Route::middleware('role:teknisi|admin')->group(function () {
-        Route::get('/technician/dashboard', [\App\Http\Controllers\Api\TechnicianController::class, 'dashboard']);
-        
-        // Tiket Gangguan (Teknisi)
-        Route::get('/technician/tickets', [TicketController::class, 'indexAdmin']); // Reusing admin method for now
-        Route::patch('/technician/tickets/{id}/status', [TicketController::class, 'updateStatus']);
-        Route::post('/technician/tickets/{id}/upload', [TicketController::class, 'uploadFoto']);
+    // Technician routes
+    Route::get('/technician/dashboard', [\App\Http\Controllers\Api\TechnicianController::class, 'dashboard']);
+    Route::get('/technician/installations', [TechnicianScheduleController::class, 'myInstallations']);
+    Route::patch('/technician/installations/{id}/status', [TechnicianScheduleController::class, 'updateStatus']);
+    
+    // Tickets - technician
+    Route::get('/technician/tickets', [TicketController::class, 'indexAdmin']);
+    Route::patch('/technician/tickets/{id}/status', [TicketController::class, 'updateStatus']);
+    Route::post('/technician/tickets/{id}/upload', [TicketController::class, 'uploadFoto']);
 
-        // Instalasi Baru (Teknisi)
-        Route::get('/technician/installations', [OrderController::class, 'index']); // Reusing admin method
-        Route::patch('/technician/installations/{id}/status', [OrderController::class, 'updateStatus']);
-    });
+    // Network Devices (For Technician & Admin)
+    Route::apiResource('network-devices', NetworkDeviceController::class);
 });

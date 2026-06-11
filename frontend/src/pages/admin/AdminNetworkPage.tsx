@@ -104,7 +104,7 @@ export function AdminNetworkPage() {
         </div>
         <div className="flex items-center gap-3">
           {isAdmin && (
-            <button 
+            <button
               onClick={() => setIsModalOpen(true)}
               className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl font-medium shadow-sm transition-all"
             >
@@ -112,7 +112,7 @@ export function AdminNetworkPage() {
               Tambah Perangkat
             </button>
           )}
-          <button 
+          <button
             onClick={handleRefresh}
             disabled={isRefreshing}
             className="flex items-center justify-center gap-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 px-4 py-2.5 rounded-xl font-medium shadow-sm transition-all disabled:opacity-50"
@@ -205,7 +205,7 @@ export function AdminNetworkPage() {
 
       {/* Main Content Area */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
+
         {/* Device List */}
         <div className="lg:col-span-2 bg-white rounded-2xl shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] border border-slate-100 overflow-hidden">
           <div className="p-4 sm:p-6 border-b border-slate-100 flex items-center justify-between">
@@ -239,14 +239,13 @@ export function AdminNetworkPage() {
                   <tr key={device.id} className="hover:bg-slate-50/50 transition-colors group">
                     <td className="px-4 sm:px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className={`hidden sm:flex w-10 h-10 rounded-xl items-center justify-center shrink-0 ${
-                          device.type === 'Router' ? 'bg-indigo-50 text-indigo-600' :
-                          device.type === 'OLT' ? 'bg-purple-50 text-purple-600' :
-                          device.type === 'Switch' ? 'bg-blue-50 text-blue-600' : 'bg-slate-100 text-slate-600'
-                        }`}>
+                        <div className={`hidden sm:flex w-10 h-10 rounded-xl items-center justify-center shrink-0 ${device.type === 'Router' ? 'bg-indigo-50 text-indigo-600' :
+                            device.type === 'OLT' ? 'bg-purple-50 text-purple-600' :
+                              device.type === 'Switch' ? 'bg-blue-50 text-blue-600' : 'bg-slate-100 text-slate-600'
+                          }`}>
                           {device.type === 'Router' ? <Globe className="w-5 h-5" /> :
-                           device.type === 'OLT' ? <Server className="w-5 h-5" /> :
-                           <Layers className="w-5 h-5" />}
+                            device.type === 'OLT' ? <Server className="w-5 h-5" /> :
+                              <Layers className="w-5 h-5" />}
                         </div>
                         <div className="min-w-[120px]">
                           <p className="font-semibold text-slate-800 text-sm whitespace-nowrap">{device.name}</p>
@@ -286,7 +285,7 @@ export function AdminNetworkPage() {
                     {isAdmin && (
                       <td className="px-4 sm:px-6 py-4 text-right">
                         <div className="flex justify-end gap-2">
-                          <button 
+                          <button
                             onClick={() => handleDeleteDevice(device.id)}
                             className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors md:opacity-0 md:group-hover:opacity-100 focus:opacity-100"
                             title="Hapus Perangkat"
@@ -375,12 +374,12 @@ export function AdminNetworkPage() {
             <form onSubmit={handleAddDevice} className="p-6 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Nama Perangkat</label>
-                <input required type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" placeholder="Mis: Core Router Mikrotik" />
+                <input required type="text" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" placeholder="Mis: Core Router Mikrotik" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Tipe</label>
-                  <select value={formData.type} onChange={e => setFormData({...formData, type: e.target.value})} className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+                  <select value={formData.type} onChange={e => setFormData({ ...formData, type: e.target.value })} className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none bg-white">
                     <option value="Router">Router</option>
                     <option value="Switch">Switch</option>
                     <option value="OLT">OLT</option>
@@ -391,22 +390,22 @@ export function AdminNetworkPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">IP Address</label>
-                  <input required type="text" value={formData.ip_address} onChange={e => setFormData({...formData, ip_address: e.target.value})} className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" placeholder="192.168.1.1" />
+                  <input required type="text" value={formData.ip_address} onChange={e => setFormData({ ...formData, ip_address: e.target.value })} className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" placeholder="192.168.1.1" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Username (Opsional)</label>
-                  <input type="text" value={formData.username} onChange={e => setFormData({...formData, username: e.target.value})} className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" />
+                  <input type="text" value={formData.username} onChange={e => setFormData({ ...formData, username: e.target.value })} className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Password (Opsional)</label>
-                  <input type="password" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" />
+                  <input type="password" value={formData.password} onChange={e => setFormData({ ...formData, password: e.target.value })} className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" />
                 </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">API Port (Opsional, Default 8728)</label>
-                <input type="text" value={formData.api_port} onChange={e => setFormData({...formData, api_port: e.target.value})} className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" placeholder="8728" />
+                <input type="text" value={formData.api_port} onChange={e => setFormData({ ...formData, api_port: e.target.value })} className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" placeholder="8728" />
               </div>
               <div className="pt-4 flex justify-end gap-3">
                 <button type="button" onClick={() => setIsModalOpen(false)} className="px-5 py-2.5 text-slate-600 font-medium hover:bg-slate-50 rounded-xl transition-colors">Batal</button>
@@ -419,3 +418,4 @@ export function AdminNetworkPage() {
     </div>
   )
 }
+

@@ -174,13 +174,27 @@ class PaymentController extends Controller
         $isFailed = in_array($transactionStatus, ['cancel', 'deny', 'expire']);
 
         if ($type === 'ORD') {
-            $order = Order::find($realId);
+            $order = Order::with('user')->find($realId);
             if (!$order) return response()->json(['message' => 'Order not found'], 404);
 
             if ($isSuccess) {
                 $order->status = 'aktif';
                 $order->tanggal_mulai = now();
                 $order->tanggal_selesai = now()->addDays($order->paket->durasi ?? 30);
+                
+                // Add PPPoE User
+                $mikrotikService = new \App\Services\MikrotikService();
+                $username = 'user_' . $order->user_id . '_' . rand(100, 999);
+                $password = \Illuminate\Support\Str::random(8);
+                $comment = 'Order ID: ' . $order->id . ' - ' . ($order->user->name ?? 'Unknown');
+                
+                if ($mikrotikService->addPppoeSecret($username, $password, 'default', $comment)) {
+                    $order->mikrotik_username = $username;
+                    $order->mikrotik_password = $password;
+                    if ($device = $mikrotikService->getDevice()) {
+                        $order->network_device_id = $device->id;
+                    }
+                }
             } else if ($isFailed) {
                 $order->status = 'ditolak';
             } else if ($transactionStatus == 'pending') {
@@ -189,16 +203,28 @@ class PaymentController extends Controller
             $order->save();
 
         } else if ($type === 'BIL') {
-            $billing = Billing::find($realId);
+            $billing = Billing::with('order')->find($realId);
             if (!$billing) return response()->json(['message' => 'Billing not found'], 404);
 
             if ($isSuccess) {
                 $billing->status = 'paid';
                 $billing->tanggal_bayar = now();
+
+                // Enable PPPoE User if exists
+                if ($billing->order && $billing->order->mikrotik_username) {
+                    $mikrotikService = new \App\Services\MikrotikService();
+                    $mikrotikService->enablePppoeSecret($billing->order->mikrotik_username);
+                }
             } else if ($isFailed && $billing->status !== 'paid') {
                 // Return to unpaid/overdue depending on due date. Wait, just let it be unpaid
                 if (now()->greaterThan($billing->jatuh_tempo)) {
                     $billing->status = 'overdue';
+                    
+                    // Disable PPPoE User if exists
+                    if ($billing->order && $billing->order->mikrotik_username) {
+                        $mikrotikService = new \App\Services\MikrotikService();
+                        $mikrotikService->disablePppoeSecret($billing->order->mikrotik_username);
+                    }
                 } else {
                     $billing->status = 'unpaid';
                 }
@@ -207,5 +233,50 @@ class PaymentController extends Controller
         }
 
         return response()->json(['message' => 'Webhook received successfully']);
+    }
+
+    public function demoOrderSuccess($id)
+    {
+        $order = Order::with('user')->findOrFail($id);
+        if ($order->status !== 'pending') {
+            return response()->json(['message' => 'Order already processed'], 400);
+        }
+
+        $order->status = 'aktif';
+        $order->tanggal_mulai = now();
+        $order->tanggal_selesai = now()->addDays($order->paket->durasi ?? 30);
+        
+        $mikrotikService = new \App\Services\MikrotikService();
+        $username = 'user_' . $order->user_id . '_' . rand(100, 999);
+        $password = \Illuminate\Support\Str::random(8);
+        $comment = 'Order ID: ' . $order->id . ' - ' . ($order->user->name ?? 'Unknown');
+        
+        if ($mikrotikService->addPppoeSecret($username, $password, 'default', $comment)) {
+            $order->mikrotik_username = $username;
+            $order->mikrotik_password = $password;
+            if ($device = $mikrotikService->getDevice()) {
+                $order->network_device_id = $device->id;
+            }
+        }
+        $order->save();
+        return response()->json(['message' => 'Demo order payment success']);
+    }
+
+    public function demoBillingSuccess($id)
+    {
+        $billing = Billing::with('order')->findOrFail($id);
+        if ($billing->status === 'paid') {
+            return response()->json(['message' => 'Billing already paid'], 400);
+        }
+
+        $billing->status = 'paid';
+        $billing->tanggal_bayar = now();
+
+        if ($billing->order && $billing->order->mikrotik_username) {
+            $mikrotikService = new \App\Services\MikrotikService();
+            $mikrotikService->enablePppoeSecret($billing->order->mikrotik_username);
+        }
+        $billing->save();
+        return response()->json(['message' => 'Demo billing payment success']);
     }
 }
